@@ -3,7 +3,7 @@
 **Laboratorio 4 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.0
+**Versión:** 1.1
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.1 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -48,8 +48,8 @@
 | ID | Tarea | Requisitos | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|---|
 | T-06 | Verificar Python 3.11+ en la Mac (`python3 --version`) y crear el entorno virtual `.venv`. | RNF-10 | Yeimy | 🔄 | Python 3.14.7 verificado (2026-11-23). Falta: crear `.venv` y guardar la captura. |
-| T-07 | Iniciar Git y crear el repositorio en GitHub. Crear `.gitignore` y `.env.example` (sin secretos). | RNF-01, RNF-02 | Yeimy + Claude Code | ⬜ | Primer commit. `git check-ignore .env` responde `.env`. |
-| T-08 | Crear la estructura de carpetas y `requirements.txt`; instalar las dependencias y fijar las versiones. | RNF-10, RNF-16 | Claude Code | ⬜ | `pip install -r requirements.txt` sin errores; versiones anotadas en la sección 8. |
+| T-07 | Iniciar Git y crear el repositorio en GitHub. Crear `.gitignore` y `.env.example` (sin secretos). | RNF-01, RNF-02 | Yeimy + Claude Code | ✅ Hecho | Commit `211a2e2` subido a GitHub (repositorio público `yeimyalvarado2708-gif/lab_2_Personal-shopper`). `git check-ignore .env` responde `.env`. `.env.example` con las claves vacías. Revisado el 2026-11-23. |
+| T-08 | Crear la estructura de carpetas y `requirements.txt`; instalar las dependencias y fijar las versiones. | RNF-10, RNF-16 | Claude Code | 🔄 | Hecho: `requirements.txt` con versiones fijas; las 5 dependencias instaladas en `.venv`; carpetas `src/`, `tests/`, `data/`, `cache_audio/` y `evidencias/` creadas; versiones anotadas en la sección 8. **Falta:** commit `T-08` (`requirements.txt`, `src/`, `evidencias/` y este plan siguen sin subir). |
 | T-09 | `src/errores.py` y `src/config.py`: excepciones propias y lectura de `.env` sin mostrar valores. | RF-18, RNF-01, RNF-11 | Claude Code | ⬜ | Con `.env` incompleto, la consola dice qué variable falta sin mostrar claves. |
 | T-10 | `src/base_conocimiento.py`: carga y validación del JSON. | RF-03 | Claude Code | ⬜ | `test_base_conocimiento.py` pasa. |
 | T-11 | Prueba de coherencia de la base (montos de las FAQ = `tarifas`; respuestas ≤ 400 caracteres). | RNF-14, RF-27 | Claude Code | ⬜ | `test_coherencia_base.py` pasa. |
@@ -218,11 +218,12 @@ Se completa en la tarea T-34.
 | Dato | Valor | Fecha de verificación |
 |---|---|---|
 | Versión de Python | 3.14.7 (cumple 3.11+) | 2026-11-23 |
+| Repositorio GitHub | https://github.com/yeimyalvarado2708-gif/lab_2_Personal-shopper (público) | 2026-11-23 |
 | Modelo de Gemini confirmado | | |
 | Límites gratuitos de Gemini vigentes | | |
 | Voz de ElevenLabs (nombre, no la clave) | | |
 | Créditos de ElevenLabs disponibles | | |
-| Versiones de las dependencias (`streamlit`, `google-genai`, `elevenlabs`, `python-dotenv`, `pytest`) | | |
+| Versiones de las dependencias (`streamlit`, `google-genai`, `elevenlabs`, `python-dotenv`, `pytest`) | streamlit 1.67.0 · google-genai 3.6.1 · elevenlabs 2.79.0 · python-dotenv 1.2.4 · pytest 9.2.0 | 2026-11-23 |
 
 ---
 
@@ -231,3 +232,4 @@ Se completa en la tarea T-34.
 | Fecha | Versión | Cambio |
 |---|---|---|
 | 2026-11-23 | 1.0 | Versión inicial: 39 tareas en 7 fases, iteraciones de diseño D-1 a D-4 y 10 riesgos. |
+| 2026-11-23 | 1.1 | T-06 y T-07 completadas; T-08 en curso (falta el commit). Se registran el repositorio y las versiones de las dependencias. |

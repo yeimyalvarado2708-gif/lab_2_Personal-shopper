@@ -1,0 +1,7 @@
+# Dependencias del Asistente "Personal Shopper" (RNF-10, RNF-16)
+# Versiones exactas, instaladas y verificadas el 2026-11-23 con Python 3.14.7.
+streamlit==1.67.0
+google-genai==3.6.1
+elevenlabs==2.79.0
+python-dotenv==1.2.4
+pytest==9.2.0
