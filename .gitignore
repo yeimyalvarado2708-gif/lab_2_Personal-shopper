@@ -1,0 +1,14 @@
+# Secretos: nunca se suben (RNF-01, RNF-02)
+.env
+
+# Audios generados por ElevenLabs (RNF-02, RF-11)
+cache_audio/
+
+# Python
+__pycache__/
+.venv/
+venv/
+.pytest_cache/
+
+# macOS
+.DS_Store

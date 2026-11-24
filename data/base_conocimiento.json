@@ -1,0 +1,372 @@
+{
+  "metadatos": {
+    "version": "1.4",
+    "fecha_actualizacion": "2026-11-23",
+    "responsable": "Personal Shopper",
+    "fuente": "Información proporcionada por la dueña del emprendimiento",
+    "total_preguntas": 23,
+    "nota": "Números de teléfono y SINPE son ficticios para el laboratorio. Toda respuesta tiene máximo 400 caracteres; la lista completa de barrios está en zonas_domicilio"
+  },
+  "negocio": {
+    "nombre": "Personal Shopper",
+    "descripcion": "Servicio de compras por encargo en PriceSmart San José, con entrega en Guápiles y alrededores.",
+    "contacto_humano": "WhatsApp 8888-0000 (número ficticio para el laboratorio)"
+  },
+  "calendario_compras": {
+    "frecuencia": "semanal",
+    "dia_compra": "jueves",
+    "dia_limite_lista": "miércoles",
+    "fechas_canceladas": []
+  },
+  "tarifas": {
+    "rangos_servicio": [
+      {
+        "desde": 0,
+        "hasta": 14999.99,
+        "porcentaje": 20
+      },
+      {
+        "desde": 15000,
+        "hasta": 40000,
+        "porcentaje": 15
+      },
+      {
+        "desde": 40000.01,
+        "hasta": null,
+        "porcentaje": 10
+      }
+    ],
+    "moneda": "CRC",
+    "entrega_domicilio_con_cargo": 2000
+  },
+  "preguntas": [
+    {
+      "id": "FAQ-01",
+      "categoria": "Servicio",
+      "pregunta": "¿Cómo funciona el servicio?",
+      "respuesta": "Usted me envía su lista de productos a más tardar el miércoles. El jueves, en PriceSmart San José, reúno sus productos, calculo el total y se lo envío. Usted me deposita ese monto, yo pago su compra en cajas y luego le entrego los productos en el centro de Guápiles o en su casa si vive en una de las zonas con entrega a domicilio.",
+      "palabras_clave": [
+        "funciona",
+        "servicio",
+        "proceso",
+        "cómo es"
+      ]
+    },
+    {
+      "id": "FAQ-02",
+      "categoria": "Tarifas",
+      "pregunta": "¿Cuánto cobra por el servicio?",
+      "respuesta": "El cargo es un porcentaje sobre el total de la factura de PriceSmart: 20% si la factura es menor a ₡15.000; 15% si está entre ₡15.000 y ₡40.000; 10% si es mayor a ₡40.000.",
+      "palabras_clave": [
+        "cobra",
+        "cuánto",
+        "porcentaje",
+        "tarifa",
+        "comisión",
+        "precio"
+      ]
+    },
+    {
+      "id": "FAQ-03",
+      "categoria": "Tarifas",
+      "pregunta": "¿Cómo se calcula el total de mi cuenta?",
+      "respuesta": "Total = factura de PriceSmart + cargo del servicio según el rango + ₡2.000 si la entrega es en La Trocha, Buenos Aires, Jiménez o La Granja. Ejemplo: factura de ₡30.000 + 15% (₡4.500) = ₡34.500; con entrega en La Trocha, ₡36.500. En la primera compra no se cobra el servicio ni la entrega.",
+      "palabras_clave": [
+        "total",
+        "cuenta",
+        "calcular",
+        "cuánto pago",
+        "factura"
+      ]
+    },
+    {
+      "id": "FAQ-04",
+      "categoria": "Tarifas",
+      "pregunta": "¿Hay algún beneficio para clientes nuevos?",
+      "respuesta": "En la primera compra se ofrece cortesía: no se cobra el cargo del servicio ni el costo de entrega a domicilio.",
+      "palabras_clave": [
+        "primera vez",
+        "nuevo",
+        "cliente nuevo",
+        "cortesía",
+        "descuento",
+        "beneficio",
+        "envío gratis",
+        "domicilio gratis"
+      ]
+    },
+    {
+      "id": "FAQ-05",
+      "categoria": "Entregas",
+      "pregunta": "¿Dónde entrega los productos?",
+      "respuesta": "Entrego en el parque de Guápiles o en otro lugar del centro de Guápiles, coordinado previamente con el cliente.",
+      "palabras_clave": [
+        "dónde",
+        "entrega",
+        "parque",
+        "centro",
+        "punto"
+      ]
+    },
+    {
+      "id": "FAQ-06",
+      "categoria": "Entregas",
+      "pregunta": "¿Hace entregas a domicilio?",
+      "respuesta": "Sí. Entrego a domicilio sin costo en 23 barrios de Guápiles, como Cuadrante, Santa Cecilia, Coopevigua, Los Diamantes y Pinares. También entrego en La Trocha, Buenos Aires, Jiménez y La Granja, con un cargo de ₡2.000. Escriba el nombre de su barrio y le confirmo. Si su barrio no está en la lista, coordinamos la entrega en el parque o el centro de Guápiles.",
+      "palabras_clave": [
+        "domicilio",
+        "casa",
+        "barrio",
+        "zona",
+        "llevan"
+      ]
+    },
+    {
+      "id": "FAQ-07",
+      "categoria": "Entregas",
+      "pregunta": "¿Cuánto cuesta la entrega a domicilio?",
+      "respuesta": "La entrega a domicilio es gratis en las zonas de cobertura, excepto en La Trocha, Buenos Aires, Jiménez y La Granja, donde tiene un costo adicional de ₡2.000.",
+      "palabras_clave": [
+        "costo",
+        "domicilio",
+        "envío",
+        "entrega",
+        "cuánto cuesta"
+      ]
+    },
+    {
+      "id": "FAQ-08",
+      "categoria": "Fechas",
+      "pregunta": "¿Qué días va a PriceSmart?",
+      "respuesta": "Voy a PriceSmart una vez por semana, todos los jueves.",
+      "palabras_clave": [
+        "días",
+        "qué día",
+        "jueves",
+        "frecuencia"
+      ]
+    },
+    {
+      "id": "FAQ-09",
+      "categoria": "Fechas",
+      "pregunta": "¿Cuál es la próxima fecha de compras?",
+      "respuesta": "Las compras son todos los jueves. La próxima fecha es el jueves más cercano según el calendario, salvo que esa semana esté cancelada.",
+      "palabras_clave": [
+        "próxima",
+        "fecha",
+        "cuándo",
+        "siguiente compra"
+      ]
+    },
+    {
+      "id": "FAQ-10",
+      "categoria": "Fechas",
+      "pregunta": "¿Hasta cuándo puedo enviar mi lista de compras?",
+      "respuesta": "La lista de compras se recibe hasta un día antes de la compra, es decir, hasta el miércoles.",
+      "palabras_clave": [
+        "lista",
+        "hasta cuándo",
+        "límite",
+        "miércoles",
+        "enviar"
+      ]
+    },
+    {
+      "id": "FAQ-11",
+      "categoria": "Productos",
+      "pregunta": "¿Cómo verifico si hay un producto?",
+      "respuesta": "Hay tres formas: revisarlo en la página web de PriceSmart, enviarme una foto del producto o preguntarme directamente por el nombre del producto.",
+      "palabras_clave": [
+        "verificar",
+        "hay",
+        "existe",
+        "disponible",
+        "producto",
+        "foto"
+      ]
+    },
+    {
+      "id": "FAQ-12",
+      "categoria": "Productos",
+      "pregunta": "¿Qué pasa si un producto no está disponible el día de la compra?",
+      "respuesta": "Si un producto no está disponible, no se agrega a la factura final y no se le cobra.",
+      "palabras_clave": [
+        "agotado",
+        "no hay",
+        "no disponible",
+        "faltante"
+      ]
+    },
+    {
+      "id": "FAQ-13",
+      "categoria": "Pagos",
+      "pregunta": "¿Qué medios de pago acepta?",
+      "respuesta": "Acepto SINPE Móvil y transferencia bancaria.",
+      "palabras_clave": [
+        "pago",
+        "pagar",
+        "medios",
+        "efectivo",
+        "sinpe",
+        "transferencia"
+      ]
+    },
+    {
+      "id": "FAQ-14",
+      "categoria": "Pagos",
+      "pregunta": "¿A qué número hago el SINPE Móvil?",
+      "respuesta": "Al número 8888-0000. (Número ficticio para el laboratorio.)",
+      "palabras_clave": [
+        "sinpe",
+        "número",
+        "depositar"
+      ]
+    },
+    {
+      "id": "FAQ-15",
+      "categoria": "Pagos",
+      "pregunta": "¿Con qué bancos puedo hacer transferencia o SINPE?",
+      "respuesta": "Trabajo con BAC y BCR.",
+      "palabras_clave": [
+        "banco",
+        "bac",
+        "bcr",
+        "transferencia",
+        "cuenta"
+      ]
+    },
+    {
+      "id": "FAQ-16",
+      "categoria": "Pagos",
+      "pregunta": "¿Cuándo debo pagar?",
+      "respuesta": "El jueves, mientras estoy en PriceSmart, le envío el total de su compra (productos + cargo del servicio + entrega a domicilio si aplica). Usted me deposita por SINPE Móvil o transferencia y, con ese pago, yo cancelo su compra en cajas. Su compra no se paga en cajas hasta recibir el depósito.",
+      "palabras_clave": [
+        "cuándo pago",
+        "pagar",
+        "adelantado",
+        "depósito"
+      ]
+    },
+    {
+      "id": "FAQ-17",
+      "categoria": "Pagos",
+      "pregunta": "¿Cómo sé cuánto tengo que pagar?",
+      "respuesta": "Usted no tiene que calcular nada: el jueves, durante la compra, yo le envío el monto total exacto de su compra, solo con los productos que sí estaban disponibles.",
+      "palabras_clave": [
+        "cuánto debo",
+        "monto",
+        "total",
+        "me avisa"
+      ]
+    },
+    {
+      "id": "FAQ-18",
+      "categoria": "Entregas",
+      "pregunta": "¿Cuándo me entregan los productos?",
+      "respuesta": "Los productos se entregan el mismo jueves en la noche o el viernes durante el transcurso del día.",
+      "palabras_clave": [
+        "cuándo entregan",
+        "entrega",
+        "llega",
+        "viernes",
+        "noche"
+      ]
+    },
+    {
+      "id": "FAQ-19",
+      "categoria": "Pagos",
+      "pregunta": "¿Qué pasa si no deposito a tiempo?",
+      "respuesta": "Si el depósito no se recibe a tiempo, la compra no se realiza.",
+      "palabras_clave": [
+        "no deposito",
+        "tarde",
+        "sin pagar",
+        "a tiempo"
+      ]
+    },
+    {
+      "id": "FAQ-20",
+      "categoria": "Servicio",
+      "pregunta": "¿Necesito membresía de PriceSmart?",
+      "respuesta": "No. El cliente no necesita membresía de PriceSmart para usar el servicio.",
+      "palabras_clave": [
+        "membresía",
+        "socio",
+        "carnet",
+        "tarjeta pricesmart"
+      ]
+    },
+    {
+      "id": "FAQ-21",
+      "categoria": "Servicio",
+      "pregunta": "¿Cómo hago mi pedido?",
+      "respuesta": "El pedido se hace por WhatsApp, enviando una lista de productos o fotografías de los productos.",
+      "palabras_clave": [
+        "pedido",
+        "pedir",
+        "ordenar",
+        "whatsapp",
+        "lista",
+        "fotos"
+      ]
+    },
+    {
+      "id": "FAQ-22",
+      "categoria": "Tarifas",
+      "pregunta": "¿Hay un monto mínimo de compra?",
+      "respuesta": "No hay monto mínimo de compra.",
+      "palabras_clave": [
+        "mínimo",
+        "poquito",
+        "compra pequeña",
+        "monto mínimo"
+      ]
+    },
+    {
+      "id": "FAQ-23",
+      "categoria": "Fechas",
+      "pregunta": "¿Qué pasa si un jueves no se va a PriceSmart?",
+      "respuesta": "Si un jueves no se realiza la compra, su pedido puede pasarse para la siguiente fecha de compras.",
+      "palabras_clave": [
+        "no va",
+        "cancelado",
+        "feriado",
+        "otra fecha",
+        "pasa"
+      ]
+    }
+  ],
+  "zonas_domicilio": {
+    "sin_cargo": [
+      "Cuadrante",
+      "Barrio Santa Cecilia",
+      "Barrio Coopevigua Uno",
+      "Barrio Coopevigua Dos",
+      "Barrio Coopevigua Tres",
+      "Barrio Los Diamantes",
+      "Barrio Pinares",
+      "La Emilia",
+      "Barrio Los Ángeles",
+      "Urbanización Toro Amarillo",
+      "Barrio Las Brisas",
+      "Garabito",
+      "Barrio Cacique",
+      "Las Salsas",
+      "Barrio Jesús",
+      "Urbanización Palma Dorada",
+      "Barrio San Miguel",
+      "Barrio Las Palmas",
+      "La Floresta",
+      "La Urba",
+      "Los Laureles",
+      "San Francisco",
+      "La Casona"
+    ],
+    "con_cargo": [
+      "La Trocha",
+      "Buenos Aires",
+      "Jiménez",
+      "La Granja"
+    ]
+  }
+}
