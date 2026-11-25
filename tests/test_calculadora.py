@@ -1,23 +1,29 @@
 """Pruebas de la calculadora (spec 5.3 y sección 10).
 
 T-13: parte de la cuenta: los 7 casos de referencia, bordes, cortesía, zonas
-y ``formatear_colones()``. T-14 agregará los casos de fechas y zona horaria.
+y ``formatear_colones()``.
+T-14: parte de las fechas: los 5 casos de 5.4, la zona horaria (RF-28) y el
+máximo de 8 semanas (RF-29).
 """
 
 import copy
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
 from src.base_conocimiento import cargar_base
 from src.calculadora import (
     LEYENDA_ESTIMADO,
+    MENSAJE_SIN_FECHA,
     ZONA_PUNTO_ENTREGA,
     calcular_cuenta,
     formatear_colones,
+    hoy_costa_rica,
     porcentaje_servicio,
+    proxima_fecha_compra,
     zonas_para_formulario,
 )
-from src.errores import ErrorValidacion
+from src.errores import ErrorBaseConocimiento, ErrorValidacion
 
 BASE = cargar_base()
 SIN_CARGO = BASE["zonas_domicilio"]["sin_cargo"][0]  # "Cuadrante"
@@ -154,3 +160,107 @@ def test_leyenda_de_estimado_rf15():
         "Este es un estimado. El total exacto se lo envío el jueves desde PriceSmart, "
         "solo con los productos disponibles."
     )
+
+
+# =====================================================================
+# T-14: fechas (spec 5.4; RF-12, RF-28, RF-29)
+# =====================================================================
+
+CALENDARIO = BASE["calendario_compras"]  # jueves / miércoles, sin cancelaciones
+
+
+def calendario_con(canceladas: list[str]) -> dict:
+    return {**CALENDARIO, "fechas_canceladas": canceladas}
+
+
+# ---------- los 5 casos de referencia (spec 5.4) ----------
+
+@pytest.mark.parametrize(
+    "hoy, canceladas, compra, limite",
+    [
+        (date(2026, 11, 23), [], "2026-11-26", "2026-11-25"),              # lunes
+        (date(2026, 11, 25), [], "2026-11-26", "2026-11-25"),              # miércoles
+        (date(2026, 11, 26), [], "2026-12-03", "2026-12-02"),              # jueves
+        (date(2026, 11, 23), ["2026-11-26"], "2026-12-03", "2026-12-02"),  # cancelado
+    ],
+    ids=["lunes", "miercoles", "jueves", "jueves-cancelado"],
+)
+def test_casos_de_referencia_de_fechas(hoy, canceladas, compra, limite):
+    assert proxima_fecha_compra(hoy, calendario_con(canceladas)) == {
+        "proxima_compra": compra,
+        "fecha_limite_lista": limite,
+    }
+
+
+def test_ocho_jueves_cancelados_no_hay_fecha_rf29():
+    jueves = [(date(2026, 11, 26) + timedelta(weeks=i)).isoformat() for i in range(8)]
+    resultado = proxima_fecha_compra(date(2026, 11, 23), calendario_con(jueves))
+    assert resultado == {"proxima_compra": None, "fecha_limite_lista": None}
+    assert MENSAJE_SIN_FECHA == (
+        "La próxima fecha de compra aún no está definida. "
+        "Escríbanos por WhatsApp al 8888-0000."
+    )
+
+
+def test_siete_cancelados_usa_el_octavo_jueves():
+    jueves = [(date(2026, 11, 26) + timedelta(weeks=i)).isoformat() for i in range(7)]
+    resultado = proxima_fecha_compra(date(2026, 11, 23), calendario_con(jueves))
+    assert resultado["proxima_compra"] == "2027-01-14"
+    assert resultado["fecha_limite_lista"] == "2027-01-13"
+
+
+# ---------- cada día de la semana (D-07) ----------
+
+@pytest.mark.parametrize(
+    "hoy, compra",
+    [
+        (date(2026, 11, 24), "2026-11-26"),  # martes
+        (date(2026, 11, 27), "2026-12-03"),  # viernes
+        (date(2026, 11, 28), "2026-12-03"),  # sábado
+        (date(2026, 11, 29), "2026-12-03"),  # domingo
+        (date(2026, 12, 28), "2026-12-31"),  # cambio de año: lunes → jueves 31
+        (date(2026, 12, 31), "2027-01-07"),  # jueves 31 → jueves del año siguiente
+    ],
+)
+def test_resto_de_los_dias(hoy, compra):
+    assert proxima_fecha_compra(hoy, CALENDARIO)["proxima_compra"] == compra
+
+
+# ---------- zona horaria de Costa Rica (RF-28) ----------
+
+def test_zona_horaria_miercoles_noche_en_costa_rica():
+    # 11:30 p. m. del miércoles en Costa Rica = 05:30 del jueves en UTC.
+    ahora_utc = datetime(2026, 11, 26, 5, 30, tzinfo=timezone.utc)
+    hoy = hoy_costa_rica(ahora_utc)
+    assert hoy == date(2026, 11, 25)
+    assert proxima_fecha_compra(hoy, CALENDARIO)["proxima_compra"] == "2026-11-26"
+
+
+def test_zona_horaria_despues_de_medianoche_en_costa_rica():
+    # 00:30 del jueves en Costa Rica = 06:30 del jueves en UTC.
+    assert hoy_costa_rica(datetime(2026, 11, 26, 6, 30, tzinfo=timezone.utc)) == date(2026, 11, 26)
+
+
+def test_hoy_costa_rica_sin_parametro_devuelve_una_fecha():
+    assert isinstance(hoy_costa_rica(), date)
+
+
+def test_hora_sin_zona_horaria_se_rechaza():
+    with pytest.raises(ValueError):
+        hoy_costa_rica(datetime(2026, 11, 26, 5, 30))
+
+
+# ---------- el calendario sale del JSON (RNF-08) ----------
+
+def test_si_cambia_el_dia_de_compra_cambia_la_fecha():
+    calendario = {"dia_compra": "Viernes", "dia_limite_lista": "jueves", "fechas_canceladas": []}
+    assert proxima_fecha_compra(date(2026, 11, 23), calendario) == {
+        "proxima_compra": "2026-11-27",
+        "fecha_limite_lista": "2026-11-26",
+    }
+
+
+def test_dia_mal_escrito_en_la_base():
+    with pytest.raises(ErrorBaseConocimiento) as info:
+        proxima_fecha_compra(date(2026, 11, 23), {**CALENDARIO, "dia_compra": "juevez"})
+    assert "dia_compra" in info.value.detalle_tecnico

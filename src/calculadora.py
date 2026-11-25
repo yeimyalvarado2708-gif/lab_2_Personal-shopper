@@ -1,18 +1,35 @@
 """Cálculos de negocio en Python, sin API (D-08, RNF-04).
 
 T-13: ``calcular_cuenta()`` y ``formatear_colones()`` (RF-13 a RF-15; spec 5.3).
-T-14 agregará ``proxima_fecha_compra()`` y ``hoy_costa_rica()``.
+T-14: ``proxima_fecha_compra()`` y ``hoy_costa_rica()`` (RF-12, RF-28, RF-29; spec 5.4).
 
-Las tarifas y zonas se leen siempre de la base de conocimiento: si cambian en
-el JSON, el cálculo cambia sin tocar este código (RNF-08).
+Las tarifas, zonas y el calendario se leen siempre de la base de conocimiento:
+si cambian en el JSON, el cálculo cambia sin tocar este código (RNF-08).
 """
 
 from __future__ import annotations
 
+import unicodedata
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
+from zoneinfo import ZoneInfo
 
 from src.errores import ErrorBaseConocimiento, ErrorValidacion
 from src.validacion import validar_monto
+
+ZONA_HORARIA_CR = ZoneInfo("America/Costa_Rica")  # RF-28
+SEMANAS_MAXIMAS = 8  # RF-29
+
+# RF-29: texto fijo cuando no hay fecha de compra en las próximas 8 semanas.
+MENSAJE_SIN_FECHA = (
+    "La próxima fecha de compra aún no está definida. "
+    "Escríbanos por WhatsApp al 8888-0000."
+)
+
+_DIAS_SEMANA = {
+    "lunes": 0, "martes": 1, "miercoles": 2, "jueves": 3,
+    "viernes": 4, "sabado": 5, "domingo": 6,
+}
 
 ZONA_PUNTO_ENTREGA = "Punto de entrega en el centro de Guápiles"
 
@@ -129,3 +146,67 @@ def formatear_colones(monto: float) -> str:
     if centimos:
         texto += f",{centimos:02d}"
     return f"{signo}₡{texto}"
+
+
+# ---------- fechas (T-14) ----------
+
+def hoy_costa_rica(ahora: datetime | None = None) -> date:
+    """Fecha de "hoy" en Costa Rica, sin importar la zona horaria del equipo (RF-28).
+
+    ``ahora`` permite probar la función con un instante fijo; debe traer zona
+    horaria (por ejemplo, UTC). Sin ``ahora`` se usa la hora actual.
+    """
+    if ahora is None:
+        return datetime.now(ZONA_HORARIA_CR).date()
+    if ahora.tzinfo is None or ahora.utcoffset() is None:
+        raise ValueError("'ahora' debe incluir zona horaria (por ejemplo, UTC).")
+    return ahora.astimezone(ZONA_HORARIA_CR).date()
+
+
+def _numero_de_dia(nombre: str, campo: str) -> int:
+    """'miércoles' → 2. Acepta mayúsculas y con o sin tilde."""
+    sin_tildes = "".join(
+        c for c in unicodedata.normalize("NFD", str(nombre).strip().lower())
+        if unicodedata.category(c) != "Mn"
+    )
+    if sin_tildes not in _DIAS_SEMANA:
+        raise ErrorBaseConocimiento(
+            detalle_tecnico=f"'calendario_compras.{campo}' tiene un día no válido: {nombre!r}."
+        )
+    return _DIAS_SEMANA[sin_tildes]
+
+
+def proxima_fecha_compra(hoy: date, calendario: dict) -> dict:
+    """Próxima fecha de compra y fecha límite para enviar la lista (RF-12, RF-29; spec 5.4).
+
+    - De lunes a miércoles: el jueves de esa semana. De jueves a domingo: el
+      jueves de la semana siguiente (D-07). Es decir, el próximo día de compra
+      DESPUÉS de hoy.
+    - Si esa fecha está en ``fechas_canceladas``, pasa al siguiente, revisando
+      como máximo 8 semanas.
+    - La fecha límite es el día de ``dia_limite_lista`` anterior a la compra
+      (el miércoles anterior al jueves).
+
+    Devuelve las fechas en formato ``AAAA-MM-DD``. Si las 8 semanas están
+    canceladas, ambas son ``None`` y se debe mostrar ``MENSAJE_SIN_FECHA``.
+    """
+    dia_compra = _numero_de_dia(calendario.get("dia_compra", "jueves"), "dia_compra")
+    dia_limite = _numero_de_dia(
+        calendario.get("dia_limite_lista", "miércoles"), "dia_limite_lista"
+    )
+    canceladas = set(calendario.get("fechas_canceladas", []))
+
+    dias_hasta_compra = (dia_compra - hoy.weekday()) % 7 or 7  # siempre después de hoy
+    primera_opcion = hoy + timedelta(days=dias_hasta_compra)
+
+    for semana in range(SEMANAS_MAXIMAS):
+        compra = primera_opcion + timedelta(weeks=semana)
+        if compra.isoformat() not in canceladas:
+            dias_antes = (compra.weekday() - dia_limite) % 7 or 7
+            limite = compra - timedelta(days=dias_antes)
+            return {
+                "proxima_compra": compra.isoformat(),
+                "fecha_limite_lista": limite.isoformat(),
+            }
+
+    return {"proxima_compra": None, "fecha_limite_lista": None}
