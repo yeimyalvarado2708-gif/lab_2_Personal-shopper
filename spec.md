@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.1 (incorpora la revisión de arquitectura del 2026-11-23)
+**Versión:** 1.2 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25)
 **Documento relacionado:** `intent.md` v1.0
 
 ---
@@ -417,6 +417,8 @@ venv/
 | Clave de Gemini inválida (401/403) | `ErrorConfiguracion` | "En este momento el asistente no está disponible. Escríbanos por WhatsApp al 8888-0000 y con gusto le ayudamos." | Igual al anterior. En la consola: "GEMINI_API_KEY no es válida". |
 | Sin conexión o tiempo agotado | `ErrorConexion` | "No hay conexión a internet en este momento. Intente de nuevo en unos minutos." | Se guarda en el historial como "sin respuesta". |
 | Cuota agotada (429 / RESOURCE_EXHAUSTED) | `ErrorCuota` | "El asistente alcanzó su límite de uso por ahora. Intente más tarde o escriba por WhatsApp al 8888-0000." | Se sugiere activar `MODO_DEMO` para la demostración. |
+| Modelo de Gemini inexistente o no disponible (404) | `ErrorConfiguracion` | "En este momento el asistente no está disponible. Escríbanos por WhatsApp al 8888-0000 y con gusto le ayudamos." | Igual al anterior. En la consola: qué valor de `GEMINI_MODEL` no existe (ver R-03 en `plan.md`). *Agregado en T-18.* |
+| Servidores de Gemini caídos o saturados (500/503) | `ErrorServicio` | "El asistente no pudo responder en este momento. Intente de nuevo en unos minutos o escríbanos por WhatsApp al 8888-0000." | Sin reintento. *Decisión de Yeimy en T-18 (2026-11-25): reformular la pregunta no ayuda en este caso.* |
 | Respuesta de Gemini que no es un JSON válido | `ErrorServicio` | "No se pudo generar una respuesta. Intente reformular su pregunta." | Se reintenta una vez; si vuelve a fallar, se muestra el mensaje. |
 | Falta la clave o la voz de ElevenLabs | `ErrorConfiguracion` | "Por ahora la respuesta está disponible solo en texto." | El texto se muestra igual (RF-19). En la consola: qué variable de ElevenLabs falta. |
 | ElevenLabs sin conexión o con error | `ErrorConexion` / `ErrorServicio` | "El audio no está disponible en este momento." | El texto se muestra igual. |
@@ -464,7 +466,7 @@ Se usa **pytest**. Las pruebas automatizadas **no llaman a las API reales**: usa
 | `test_validacion.py` | Pregunta vacía, solo espacios, más de 500 caracteres; monto vacío, texto, cero y negativo. | Entrada vacía o inválida |
 | `test_base_conocimiento.py` | Carga correcta, JSON mal formado, campos faltantes e ID repetidos. | Validación de datos |
 | `test_asistente.py` | Con mock: respuesta de más de 400 caracteres recortada en la última oración completa (RF-10); fuente inexistente descartada (RF-07); "suficiente" sin fuente → mensaje fijo; `informacion_suficiente: false` con texto inventado → solo el mensaje fijo (RF-21); monto que no existe en la base → mensaje de calculadora (RF-24); `aclaracion_pendiente: true` → se agrega el texto de WhatsApp (RF-25). | Comportamiento anti-invención |
-| `test_gemini_client.py` | Con mock: respuesta exitosa interpretada; falta de clave → `ErrorConfiguracion`; error de red → `ErrorConexion`; 429 → `ErrorCuota`; JSON inválido → `ErrorServicio`. | Éxito de Gemini; falta de clave, red y cuota |
+| `test_gemini_client.py` | Con mock: respuesta exitosa interpretada; falta de clave → `ErrorConfiguracion`; clave inválida (401/403) → `ErrorConfiguracion`; modelo inexistente (404) → `ErrorConfiguracion`; error de red o tiempo agotado → `ErrorConexion`; 429 → `ErrorCuota`; servidores caídos o saturados (500/503) → `ErrorServicio`, sin reintento; JSON inválido → `ErrorServicio`, con un reintento. En cada caso se verifica el mensaje al cliente de la sección 7 y que la consola no muestre claves. | Éxito de Gemini; falta de clave, red y cuota |
 | `test_voz.py` | Con mock: audio generado; reutilización desde la caché sin nueva llamada; los 4 casos de `normalizar_para_audio()` (5.6.1); tiempo de espera vencido → `ErrorConexion`; cuota agotada → `ErrorCuota`. | Generación de audio; cuota |
 | `test_demo.py` | Modo demo sin llamadas a la API; coincidencia sin distinguir mayúsculas ni tildes (RF-30); sin coincidencia → información insuficiente. | Modo sin créditos |
 | `test_coherencia_base.py` | Los porcentajes y montos de FAQ-02, FAQ-03 y FAQ-07 coinciden con la sección `tarifas` (RNF-14); ninguna respuesta de la base pasa de 400 caracteres (RF-27). | Validación de datos |

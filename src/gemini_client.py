@@ -19,24 +19,56 @@ Regla del ciclo C-01: el cliente de Gemini se guarda en una variable (o en un
 ``with``) y no se encadena en una sola línea, porque Python lo cerraría antes
 de enviar la consulta.
 
-Pendiente para T-18: traducir los errores del SDK (clave inválida, red,
-tiempo agotado, cuota) y el JSON inválido a las excepciones propias. Por
-ahora esos errores salen tal como los lanza el SDK o ``json``.
+Errores (T-18; spec, sección 7): todo fallo de Gemini sale de este módulo
+como una excepción propia (``src/errores.py``), con un mensaje para el cliente
+y un detalle técnico para la consola que nunca incluye la clave:
+
+- Falta la clave, clave inválida o modelo inexistente → ``ErrorConfiguracion``.
+- Sin conexión o tiempo de espera agotado → ``ErrorConexion``.
+- Cuota agotada (429 / RESOURCE_EXHAUSTED) → ``ErrorCuota``.
+- Servidores de Gemini caídos o saturados (5xx) → ``ErrorServicio`` con
+  ``MENSAJE_SERVICIO_NO_DISPONIBLE`` (decisión de Yeimy).
+- JSON inválido → se reintenta una vez; si vuelve a fallar, ``ErrorServicio``.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import re
 
+import httpx
+import httpx2
 from google import genai
+from google.genai import errors as errores_sdk
 from google.genai import types
 
 from src.calculadora import MENSAJE_SIN_FECHA
 from src.config import Config, cargar_config
 from src.demo import CATEGORIA_SIN_INFORMACION, FUENTE_CALENDARIO, fecha_en_palabras
+from src.errores import (
+    MENSAJE_NO_DISPONIBLE,
+    MENSAJE_SERVICIO_NO_DISPONIBLE,
+    ErrorAsistente,
+    ErrorConexion,
+    ErrorConfiguracion,
+    ErrorCuota,
+    ErrorServicio,
+)
+
+logger = logging.getLogger("personal_shopper")
 
 TEMPERATURA = 0.2  # RNF-13
+INTENTOS_JSON = 2  # spec 7: si el JSON es inválido, se reintenta una vez
+
+# Reintentos automáticos del SDK: DESACTIVADOS (decisión de Yeimy en T-17).
+# Un solo intento por llamada. Si no se dijera nada, el SDK hoy tampoco
+# reintenta, pero un ``HttpRetryOptions()`` vacío haría hasta 5 intentos ante
+# 429/500/503 y gastaría cuota; por eso se fija de forma explícita.
+INTENTOS_HTTP = 1
+
+# Errores de red del SDK (usa httpx2; httpx se incluye por si cambia).
+ERRORES_DE_RED = (httpx2.TransportError, httpx.TransportError)
 
 ETIQUETA_INICIO = "<pregunta_cliente>"
 ETIQUETA_FIN = "</pregunta_cliente>"
@@ -178,25 +210,123 @@ def crear_cliente(config: Config) -> genai.Client:
     Guárdelo en una variable o úselo con ``with`` (ciclo C-01).
     """
     config.verificar_gemini()  # falta la clave → ErrorConfiguracion (spec 7)
-    opciones_http = types.HttpOptions(timeout=config.tiempo_espera_api * 1000)  # ms
+    opciones_http = types.HttpOptions(
+        timeout=config.tiempo_espera_api * 1000,  # milisegundos
+        retry_options=types.HttpRetryOptions(attempts=INTENTOS_HTTP),
+    )
     return genai.Client(api_key=config.gemini_api_key, http_options=opciones_http)
 
 
 def interpretar_respuesta(texto: str) -> dict:
     """Convierte el JSON de Gemini en el diccionario de spec 5.5.
 
-    Solo se conservan los cinco campos del contrato. Si el texto no es un JSON
-    válido o le falta un campo, se lanza la excepción de ``json`` o
-    ``KeyError`` (T-18 los traduce a ``ErrorServicio``).
+    Solo se conservan los cinco campos del contrato. Lanza ``ValueError`` si
+    el texto no es un JSON válido (o viene vacío), si falta un campo o si un
+    campo tiene otro tipo (por ejemplo, ``"false"`` como texto en lugar de
+    ``false``). ``generar_respuesta()`` lo traduce a ``ErrorServicio``.
     """
-    datos = json.loads(texto)
+    if not texto:
+        raise ValueError("Gemini devolvió una respuesta vacía")
+    datos = json.loads(texto)  # JSONDecodeError es un ValueError
+    if not isinstance(datos, dict):
+        raise ValueError("El JSON de Gemini no es un objeto")
+    faltan = [campo for campo in CAMPOS_RESPUESTA if campo not in datos]
+    if faltan:
+        raise ValueError(f"Al JSON de Gemini le faltan campos: {', '.join(faltan)}")
+
+    fuentes = datos["fuentes"]
+    if not isinstance(fuentes, list) or not all(isinstance(f, str) for f in fuentes):
+        raise ValueError("'fuentes' debe ser una lista de textos")
+    for campo in ("respuesta", "categoria"):
+        if not isinstance(datos[campo], str):
+            raise ValueError(f"'{campo}' debe ser un texto")
+    for campo in ("informacion_suficiente", "aclaracion_pendiente"):
+        if not isinstance(datos[campo], bool):
+            raise ValueError(f"'{campo}' debe ser true o false")
+
     return {
-        "respuesta": str(datos["respuesta"]).strip(),
-        "fuentes": [str(fuente).strip() for fuente in datos["fuentes"]],
-        "categoria": str(datos["categoria"]).strip(),
-        "informacion_suficiente": bool(datos["informacion_suficiente"]),
-        "aclaracion_pendiente": bool(datos["aclaracion_pendiente"]),
+        "respuesta": datos["respuesta"].strip(),
+        "fuentes": [fuente.strip() for fuente in fuentes],
+        "categoria": datos["categoria"].strip(),
+        "informacion_suficiente": datos["informacion_suficiente"],
+        "aclaracion_pendiente": datos["aclaracion_pendiente"],
     }
+
+
+# ---------- traducción de errores (T-18; spec, sección 7) ----------
+
+def traducir_error_api(error: errores_sdk.APIError, config: Config) -> ErrorAsistente:
+    """Convierte un error HTTP de Gemini en una excepción propia.
+
+    El detalle técnico usa solo el código y el estado HTTP, nunca el texto
+    completo del error ni la clave.
+    """
+    codigo = error.code
+    estado = error.status or ""
+    texto = f"{error.message or ''} {error.details or ''}"
+    resumen = f"{codigo} {estado}".strip()
+
+    if codigo == 429 or estado == "RESOURCE_EXHAUSTED":
+        return ErrorCuota(detalle_tecnico=f"Gemini: cuota agotada ({resumen})")
+    # Gemini responde 400 con API_KEY_INVALID cuando la clave está mal escrita.
+    if codigo in (401, 403) or "API_KEY_INVALID" in texto or "API key not valid" in texto:
+        return ErrorConfiguracion(
+            MENSAJE_NO_DISPONIBLE,
+            detalle_tecnico=f"GEMINI_API_KEY no es válida o no tiene permiso ({resumen})",
+        )
+    if codigo == 404:
+        return ErrorConfiguracion(
+            MENSAJE_NO_DISPONIBLE,
+            detalle_tecnico=(
+                f"El modelo GEMINI_MODEL={config.gemini_model} no existe o no está "
+                f"disponible para esta clave ({resumen})"
+            ),
+        )
+    if isinstance(codigo, int) and codigo >= 500:
+        return ErrorServicio(
+            MENSAJE_SERVICIO_NO_DISPONIBLE,
+            detalle_tecnico=f"Gemini no está disponible ({resumen})",
+        )
+    return ErrorServicio(detalle_tecnico=f"Gemini rechazó la solicitud ({resumen})")
+
+
+def _pedir_texto(cliente: genai.Client, config: Config, contenido: str,
+                 parametros: types.GenerateContentConfig) -> str | None:
+    """Una llamada a Gemini; traduce los errores del SDK y de la red."""
+    try:
+        respuesta = cliente.models.generate_content(
+            model=config.gemini_model, contents=contenido, config=parametros
+        )
+    except errores_sdk.APIError as error:
+        raise traducir_error_api(error, config) from error
+    except ERRORES_DE_RED as error:
+        raise ErrorConexion(
+            detalle_tecnico=(
+                f"Sin conexión con Gemini o tiempo de espera agotado "
+                f"(TIEMPO_ESPERA_API={config.tiempo_espera_api} s; {type(error).__name__})"
+            )
+        ) from error
+    return respuesta.text
+
+
+def _generar_con_cliente(cliente: genai.Client, config: Config, contenido: str,
+                         parametros: types.GenerateContentConfig) -> dict:
+    """Pide la respuesta y la interpreta; si el JSON es inválido, reintenta una vez."""
+    ultimo_error: ValueError | None = None
+    for intento in range(1, INTENTOS_JSON + 1):
+        texto = _pedir_texto(cliente, config, contenido, parametros)
+        try:
+            return interpretar_respuesta(texto)
+        except ValueError as error:
+            ultimo_error = error
+            # No se registra la pregunta del cliente (RNF-15).
+            logger.warning(
+                "Gemini devolvió un JSON inválido (intento %d de %d): %s",
+                intento, INTENTOS_JSON, error,
+            )
+    raise ErrorServicio(
+        detalle_tecnico=f"Gemini devolvió un JSON inválido {INTENTOS_JSON} veces: {ultimo_error}"
+    ) from ultimo_error
 
 
 def generar_respuesta(
@@ -217,19 +347,16 @@ def generar_respuesta(
     ``informacion_suficiente`` y ``aclaracion_pendiente``. Los controles
     anti-invención (RF-07, RF-21, RF-24, RF-25, RF-10) se aplican después, en
     ``asistente.py`` (T-19).
+
+    Lanza ``ErrorConfiguracion``, ``ErrorConexion``, ``ErrorCuota`` o
+    ``ErrorServicio`` (spec, sección 7). ``str(error)`` es el mensaje para el
+    cliente y ``error.detalle_tecnico`` es para la consola.
     """
     config = config or cargar_config()
     parametros = configuracion_generacion(base, fechas, config)
     contenido = armar_contenido(pregunta)
 
     if cliente is not None:
-        respuesta = cliente.models.generate_content(
-            model=config.gemini_model, contents=contenido, config=parametros
-        )
-    else:
-        with crear_cliente(config) as cliente_temporal:
-            respuesta = cliente_temporal.models.generate_content(
-                model=config.gemini_model, contents=contenido, config=parametros
-            )
-
-    return interpretar_respuesta(respuesta.text)
+        return _generar_con_cliente(cliente, config, contenido, parametros)
+    with crear_cliente(config) as cliente_temporal:
+        return _generar_con_cliente(cliente_temporal, config, contenido, parametros)

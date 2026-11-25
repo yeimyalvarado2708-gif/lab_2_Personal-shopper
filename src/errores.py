@@ -27,7 +27,13 @@ MENSAJE_CUOTA_GEMINI = (
 MENSAJE_RESPUESTA_INVALIDA = (
     "No se pudo generar una respuesta. Intente reformular su pregunta."
 )
-MENSAJE_SOLO_TEXTO = "Por ahora la respuesta está disponible solo en texto."
+# Decisión de Yeimy (2026-11-25, T-18): cuando el servicio falla (500/503),
+# reformular la pregunta no ayuda; se pide esperar o escribir por WhatsApp.
+MENSAJE_SERVICIO_NO_DISPONIBLE = (
+    "El asistente no pudo responder en este momento. "
+    "Intente de nuevo en unos minutos o escríbanos por WhatsApp al 8888-0000."
+)
+MENSAJE_SOLO_TEXTO ="Por ahora la respuesta está disponible solo en texto."
 MENSAJE_AUDIO_NO_DISPONIBLE = "El audio no está disponible en este momento."
 MENSAJE_CUOTA_AUDIO = (
     "Se agotaron los créditos de audio de este mes. "
