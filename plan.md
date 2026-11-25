@@ -3,7 +3,7 @@
 **Laboratorio 4 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.3
+**Versión:** 1.4
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.1 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -53,7 +53,7 @@
 | T-09 | `src/errores.py` y `src/config.py`: excepciones propias y lectura de `.env` sin mostrar valores. | RF-18, RNF-01, RNF-11 | Claude Code | ✅ Hecho | Commit `afc57c2` (2026-11-24). Con `.env` incompleto, `python -m src.config` dice qué variable falta sin mostrar claves (captura `evidencias/evidencia t9.png`). Se agregaron `tests/test_config.py` (21 pruebas aprobadas) y `pytest.ini`, que no estaban en la sección 10 del spec. |
 | T-10 | `src/base_conocimiento.py`: carga y validación del JSON. | RF-03 | Claude Code | ✅ Hecho | Commit `2620025` (2026-11-24). `test_base_conocimiento.py` pasa: 27 pruebas (captura `evidencias/evidencia t10.png`). Total del proyecto: 48 pruebas aprobadas. |
 | T-11 | Prueba de coherencia de la base (montos de las FAQ = `tarifas`; respuestas ≤ 400 caracteres). | RNF-14, RF-27 | Claude Code | ✅ Hecho | Commit `8367a6e` (2026-11-24), subido a GitHub. `test_coherencia_base.py` pasa: 79 pruebas (FAQ-02, FAQ-03, FAQ-06, FAQ-07, revisión general de montos y porcentajes, y 400 caracteres en las 23 FAQ). Prueba de detección: con ₡2.500 en FAQ-07 fallan 2 pruebas que nombran a FAQ-07 (captura `evidencias/evidencia t11.png`). Total del proyecto: 127 pruebas aprobadas. |
-| T-12 | `src/validacion.py`: validar la pregunta y el monto. | RF-02, RF-16 | Claude Code | ⬜ | `test_validacion.py` pasa. |
+| T-12 | `src/validacion.py`: validar la pregunta y el monto. | RF-02, RF-16 | Claude Code | ✅ Hecho | Commit `e3658af` (2026-11-24). `test_validacion.py` pasa: 39 pruebas (pregunta vacía, solo espacios, 500/501 caracteres; monto vacío, texto, cero y negativo). `validar_monto()` acepta además el formato de Costa Rica ("₡30.000" = 30000), que no estaba explícito en el spec. Captura `evidencias/evidencia t12.png`. Total del proyecto: 166 pruebas aprobadas. |
 | T-13 | `src/calculadora.py`: `calcular_cuenta()` con los 7 casos de referencia y `formatear_colones()`. | RF-13 a RF-15, D-08 | Claude Code | ⬜ | `test_calculadora.py` (parte de la cuenta) pasa al 100%. |
 | T-14 | `src/calculadora.py`: `proxima_fecha_compra()` y `hoy_costa_rica()` (zona horaria y máximo de 8 semanas). | RF-12, RF-28, RF-29 | Claude Code | ⬜ | Los 5 casos de fechas y el caso de zona horaria pasan. |
 | T-15 | `src/demo.py`: respuestas simuladas por palabras clave, sin distinguir mayúsculas ni tildes. | RF-20, RF-30 | Claude Code | ⬜ | `test_demo.py` pasa. |
@@ -235,3 +235,4 @@ Se completa en la tarea T-34.
 | 2026-11-23 | 1.1 | T-06 y T-07 completadas; T-08 en curso (falta el commit). Se registran el repositorio y las versiones de las dependencias. |
 | 2026-11-24 | 1.2 | T-06, T-08, T-09 y T-10 completadas, con sus commits y evidencias. |
 | 2026-11-24 | 1.3 | T-11 completada, con su commit y evidencia. |
+| 2026-11-24 | 1.4 | T-12 completada, con su commit y evidencia. |
