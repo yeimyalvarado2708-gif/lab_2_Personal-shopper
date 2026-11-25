@@ -3,7 +3,7 @@
 **Laboratorio 4 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.1
+**Versión:** 1.2
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.1 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -47,11 +47,11 @@
 
 | ID | Tarea | Requisitos | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|---|
-| T-06 | Verificar Python 3.11+ en la Mac (`python3 --version`) y crear el entorno virtual `.venv`. | RNF-10 | Yeimy | 🔄 | Python 3.14.7 verificado (2026-11-23). Falta: crear `.venv` y guardar la captura. |
+| T-06 | Verificar Python 3.11+ en la Mac (`python3 --version`) y crear el entorno virtual `.venv`. | RNF-10 | Yeimy | ✅ Hecho | Python 3.14.7 verificado y `.venv` creado (2026-11-23). Captura `evidencias/T-06_python_venv.png` (commit `44d0cf1`), revisada sin claves visibles. |
 | T-07 | Iniciar Git y crear el repositorio en GitHub. Crear `.gitignore` y `.env.example` (sin secretos). | RNF-01, RNF-02 | Yeimy + Claude Code | ✅ Hecho | Commit `211a2e2` subido a GitHub (repositorio público `yeimyalvarado2708-gif/lab_2_Personal-shopper`). `git check-ignore .env` responde `.env`. `.env.example` con las claves vacías. Revisado el 2026-11-23. |
-| T-08 | Crear la estructura de carpetas y `requirements.txt`; instalar las dependencias y fijar las versiones. | RNF-10, RNF-16 | Claude Code | 🔄 | Hecho: `requirements.txt` con versiones fijas; las 5 dependencias instaladas en `.venv`; carpetas `src/`, `tests/`, `data/`, `cache_audio/` y `evidencias/` creadas; versiones anotadas en la sección 8. **Falta:** commit `T-08` (`requirements.txt`, `src/`, `evidencias/` y este plan siguen sin subir). |
-| T-09 | `src/errores.py` y `src/config.py`: excepciones propias y lectura de `.env` sin mostrar valores. | RF-18, RNF-01, RNF-11 | Claude Code | ⬜ | Con `.env` incompleto, la consola dice qué variable falta sin mostrar claves. |
-| T-10 | `src/base_conocimiento.py`: carga y validación del JSON. | RF-03 | Claude Code | ⬜ | `test_base_conocimiento.py` pasa. |
+| T-08 | Crear la estructura de carpetas y `requirements.txt`; instalar las dependencias y fijar las versiones. | RNF-10, RNF-16 | Claude Code | ✅ Hecho | Commit `44d0cf1` subido a GitHub. `pip install -r requirements.txt` y `pip check` sin errores; las 5 dependencias con versión exacta; carpetas `src/`, `tests/`, `data/`, `cache_audio/` y `evidencias/` creadas; versiones anotadas en la sección 8 (2026-11-24). |
+| T-09 | `src/errores.py` y `src/config.py`: excepciones propias y lectura de `.env` sin mostrar valores. | RF-18, RNF-01, RNF-11 | Claude Code | ✅ Hecho | Commit `afc57c2` (2026-11-24). Con `.env` incompleto, `python -m src.config` dice qué variable falta sin mostrar claves (captura `evidencias/evidencia t9.png`). Se agregaron `tests/test_config.py` (21 pruebas aprobadas) y `pytest.ini`, que no estaban en la sección 10 del spec. |
+| T-10 | `src/base_conocimiento.py`: carga y validación del JSON. | RF-03 | Claude Code | ✅ Hecho | Commit `2620025` (2026-11-24). `test_base_conocimiento.py` pasa: 27 pruebas (captura `evidencias/evidencia t10.png`). Total del proyecto: 48 pruebas aprobadas. |
 | T-11 | Prueba de coherencia de la base (montos de las FAQ = `tarifas`; respuestas ≤ 400 caracteres). | RNF-14, RF-27 | Claude Code | ⬜ | `test_coherencia_base.py` pasa. |
 | T-12 | `src/validacion.py`: validar la pregunta y el monto. | RF-02, RF-16 | Claude Code | ⬜ | `test_validacion.py` pasa. |
 | T-13 | `src/calculadora.py`: `calcular_cuenta()` con los 7 casos de referencia y `formatear_colones()`. | RF-13 a RF-15, D-08 | Claude Code | ⬜ | `test_calculadora.py` (parte de la cuenta) pasa al 100%. |
@@ -233,3 +233,4 @@ Se completa en la tarea T-34.
 |---|---|---|
 | 2026-11-23 | 1.0 | Versión inicial: 39 tareas en 7 fases, iteraciones de diseño D-1 a D-4 y 10 riesgos. |
 | 2026-11-23 | 1.1 | T-06 y T-07 completadas; T-08 en curso (falta el commit). Se registran el repositorio y las versiones de las dependencias. |
+| 2026-11-24 | 1.2 | T-06, T-08, T-09 y T-10 completadas, con sus commits y evidencias. |
