@@ -1,6 +1,6 @@
 # plan.md — Plan de implementación del Asistente "Personal Shopper"
 
-**Laboratorio 4 · Desafío 1 · LE Claude Code**
+**Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
 **Versión:** 1.7

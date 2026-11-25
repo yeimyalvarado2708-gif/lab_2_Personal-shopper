@@ -1,6 +1,6 @@
 # intent.md — Asistente de atención al cliente con voz para "Personal Shopper"
 
-**Laboratorio 4 · Desafío 1 · LE Claude Code**
+**Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
 **Versión:** 1.0
