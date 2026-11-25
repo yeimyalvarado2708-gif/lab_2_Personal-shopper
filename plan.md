@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.9
+**Versión:** 1.11
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.1 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -63,7 +63,7 @@
 | ID | Tarea | Requisitos | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|---|
 | T-16 | Obtener la clave en Google AI Studio, confirmar que `gemini-3.5-flash-lite` está disponible y anotar los límites gratuitos vigentes. | Pendiente del spec | Yeimy | ✅ Hecho | 2026-11-25: clave en `.env` (no aparece en capturas; `.env` ignorado por Git); modelo `gemini-3.5-flash-lite` confirmado consultando los datos del modelo, sin generar texto (entrada 1 048 576 tokens, salida 65 536) — captura `evidencias/evidencia t16.png`. Ciclo C-01 registrado. Límites gratuitos anotados en la sección 8 (captura `evidencias/evidencia t16 limites.png`; AI Studio no permite capturar los títulos de las columnas, y Yeimy confirma que las cifras son RPM, TPM y RPD). |
-| T-17 | `src/gemini_client.py`: prompt con delimitadores, respuesta en JSON, temperatura 0.2 y tiempo de espera. | RF-04, RF-05, RF-22, RF-23, RNF-12, RNF-13 | Claude Code | ⬜ | `test_gemini_client.py` (con mocks) pasa. |
+| T-17 | `src/gemini_client.py`: prompt con delimitadores, respuesta en JSON, temperatura 0.2 y tiempo de espera. | RF-04, RF-05, RF-22, RF-23, RNF-12, RNF-13 | Claude Code | ✅ Hecho | Commit `6a616a7` (2026-11-25). `test_gemini_client.py` pasa: 20 pruebas con mocks, sin red (respuesta exitosa; modelo, temperatura 0.2 y JSON; pregunta entre delimitadores que no se pueden cerrar desde la pregunta; base en las instrucciones; fechas y caso sin fecha; sin clave no se crea el cliente; tiempo de espera; la clave nunca viaja en el prompt). Se revisó el prompt generado con sus 10 reglas. Captura `evidencias/evidencia t17.png`. Decisiones aprobadas por Yeimy: sin reintentos automáticos del SDK (el reintento por JSON inválido va en T-18); categoría limitada a las 6 de la base o "Sin información"; tono de "usted" en español de Costa Rica; base completa con palabras clave y metadatos; fecha límite "durante todo el día" (D-11). Los errores del SDK y el JSON inválido se traducen en T-18. Total del proyecto: 302 pruebas aprobadas. |
 | T-18 | Traducir los errores de Gemini (falta de clave, clave inválida, red, cuota, JSON inválido) a las excepciones propias. | RF-18, sección 7 | Claude Code | ⬜ | Las pruebas de error con mock pasan. |
 | T-19 | `src/asistente.py`: controles anti-invención (fuentes, mensaje fijo, verificación de montos, dos partes, recorte a 400). | RF-06, RF-07, RF-10, RF-21, RF-24, RF-25 | Claude Code | ⬜ | `test_asistente.py` pasa. |
 | T-20 | **Primera prueba real de Gemini:** una pregunta desde la consola, con `MODO_DEMO=false`. | Prueba manual 1 | Yeimy | ⬜ | Captura de la respuesta con su fuente, guardada en `evidencias/`. |
@@ -241,3 +241,5 @@ Se completa en la tarea T-34.
 | 2026-11-24 | 1.7 | T-15 completada, con su commit y su evidencia. Termina la fase 1. |
 | 2026-11-25 | 1.8 | T-16 en curso: modelo confirmado y clave configurada; falta anotar los límites gratuitos. Primer ciclo de desarrollo C-01 registrado. |
 | 2026-11-25 | 1.9 | T-16 completada: límites gratuitos de Gemini 3.5 Flash Lite anotados (15 RPM · 250K TPM · 500 RPD). |
+| 2026-11-25 | 1.10 | T-17 en curso: 20 pruebas de `gemini_client.py` aprobadas y evidencia guardada; falta el commit. |
+| 2026-11-25 | 1.11 | T-17 completada, con su commit, su evidencia y las decisiones aprobadas. |
