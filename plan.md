@@ -3,7 +3,7 @@
 **Laboratorio 4 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.6
+**Versión:** 1.7
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.1 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -56,7 +56,7 @@
 | T-12 | `src/validacion.py`: validar la pregunta y el monto. | RF-02, RF-16 | Claude Code | ✅ Hecho | Commit `e3658af` (2026-11-24). `test_validacion.py` pasa: 39 pruebas (pregunta vacía, solo espacios, 500/501 caracteres; monto vacío, texto, cero y negativo). `validar_monto()` acepta además el formato de Costa Rica ("₡30.000" = 30000), que no estaba explícito en el spec. Captura `evidencias/evidencia t12.png`. Total del proyecto: 166 pruebas aprobadas. |
 | T-13 | `src/calculadora.py`: `calcular_cuenta()` con los 7 casos de referencia y `formatear_colones()`. | RF-13 a RF-15, D-08 | Claude Code | ✅ Hecho | Commit `ba98614` (2026-11-24). `test_calculadora.py` (parte de la cuenta) pasa al 100%: 68 pruebas, con los 7 casos de referencia. Decisiones aprobadas por Yeimy: redondeo al colón con mitades hacia arriba; monto llevado a céntimos para que no haya huecos entre rangos; con cortesía se informa el porcentaje del rango con cargo ₡0; la zona no registrada se rechaza con "Zona no registrada. Será valorada y pronto le enviaremos más detalles.", también en la primera compra; formato `₡36.500` / `₡30.000,50`. Captura `evidencias/evidencia t13.png`. Total del proyecto: 234 pruebas aprobadas. |
 | T-14 | `src/calculadora.py`: `proxima_fecha_compra()` y `hoy_costa_rica()` (zona horaria y máximo de 8 semanas). | RF-12, RF-28, RF-29 | Claude Code | ✅ Hecho | Commit `fc6e38a` (2026-11-24), subido a GitHub. Pasan los 5 casos de fechas de 5.4 y el caso de zona horaria (05:30 UTC del jueves = miércoles 11:30 p. m. en Costa Rica). `test_calculadora.py`: 86 pruebas (68 de T-13 + 18 de T-14). Decisiones: sin fecha en 8 semanas → ambas fechas `None` y se muestra el texto fijo de RF-29; `dia_compra` y `dia_limite_lista` se leen del JSON (RNF-08); no se revisa si la fecha límite está cancelada; en Windows haría falta `tzdata`. Captura `evidencias/evidencia t14.png`. Total del proyecto: 252 pruebas aprobadas. |
-| T-15 | `src/demo.py`: respuestas simuladas por palabras clave, sin distinguir mayúsculas ni tildes. | RF-20, RF-30 | Claude Code | ⬜ | `test_demo.py` pasa. |
+| T-15 | `src/demo.py`: respuestas simuladas por palabras clave, sin distinguir mayúsculas ni tildes. | RF-20, RF-30 | Claude Code | ✅ Hecho | Commit `2a161b4` (2026-11-24), subido a GitHub. `test_demo.py` pasa: 30 pruebas (sin red ni SDK de las API; sin distinguir mayúsculas, tildes ni plural; sin coincidencia → mensaje fijo de RF-21 con `informacion_suficiente: false`). "¿Cuándo es la próxima compra?" usa las fechas calculadas con fuente CALENDARIO. Categoría sin coincidencia: "Sin información". Observación: con las 20 preguntas `dentro_base` del conjunto de evaluación, el modo demo acierta 14/20 (no afecta la evaluación oficial con Gemini, T-33). Captura `evidencias/evidencia t15.png`. Total del proyecto: 282 pruebas aprobadas. |
 
 ### Fase 2 — Integración con Gemini
 
@@ -238,3 +238,4 @@ Se completa en la tarea T-34.
 | 2026-11-24 | 1.4 | T-12 completada, con su commit y evidencia. |
 | 2026-11-24 | 1.5 | T-13 completada, con su commit, su evidencia y las decisiones aprobadas. |
 | 2026-11-24 | 1.6 | T-14 completada, con su commit y su evidencia. Termina la lógica de la calculadora. |
+| 2026-11-24 | 1.7 | T-15 completada, con su commit y su evidencia. Termina la fase 1. |
