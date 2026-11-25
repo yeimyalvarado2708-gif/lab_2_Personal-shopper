@@ -527,13 +527,13 @@ Los resultados se registran en `plan.md` como evidencia.
 ## 12. Pendientes antes de programar
 
 - [ ] Elegir la voz prediseñada (premade) de ElevenLabs y anotar su `voice_id` en `.env`.
-- [ ] Confirmar en Google AI Studio que `gemini-3.5-flash-lite` está disponible para la cuenta, y verificar los límites gratuitos vigentes.
+- [x] Confirmar en Google AI Studio que `gemini-3.5-flash-lite` está disponible para la cuenta, y verificar los límites gratuitos vigentes. *Hecho en T-16 (2026-11-25).*
 - [ ] Verificar en ElevenLabs los créditos disponibles del mes.
-- [ ] Revisar la versión de Python instalada en la Mac (debe ser 3.11 o superior).
+- [x] Revisar la versión de Python instalada en la Mac (debe ser 3.11 o superior). *Hecho en T-06 (Python 3.14.7).*
 - [ ] Revisar las condiciones vigentes del plan gratuito de Gemini sobre el uso de los datos enviados, y mencionarlo en la reflexión.
 - [x] Confirmar el supuesto D-11: la lista se recibe todo el miércoles, sin hora límite.
 - [x] Acortar FAQ-03 y FAQ-06 a menos de 400 caracteres (RF-27). *Hecho en la versión 1.3 de la base.*
-- [ ] Escribir `tests/preguntas_evaluacion.json` antes de programar.
+- [x] Escribir `tests/preguntas_evaluacion.json` antes de programar. *Hecho en T-04 (v1.0, 33 casos).*
 
 ---
 

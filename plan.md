@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.7
+**Versión:** 1.9
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.1 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -62,7 +62,7 @@
 
 | ID | Tarea | Requisitos | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|---|
-| T-16 | Obtener la clave en Google AI Studio, confirmar que `gemini-3.5-flash-lite` está disponible y anotar los límites gratuitos vigentes. | Pendiente del spec | Yeimy | ⬜ | Clave en `.env` (nunca en capturas); límites anotados en la sección 8. |
+| T-16 | Obtener la clave en Google AI Studio, confirmar que `gemini-3.5-flash-lite` está disponible y anotar los límites gratuitos vigentes. | Pendiente del spec | Yeimy | ✅ Hecho | 2026-11-25: clave en `.env` (no aparece en capturas; `.env` ignorado por Git); modelo `gemini-3.5-flash-lite` confirmado consultando los datos del modelo, sin generar texto (entrada 1 048 576 tokens, salida 65 536) — captura `evidencias/evidencia t16.png`. Ciclo C-01 registrado. Límites gratuitos anotados en la sección 8 (captura `evidencias/evidencia t16 limites.png`; AI Studio no permite capturar los títulos de las columnas, y Yeimy confirma que las cifras son RPM, TPM y RPD). |
 | T-17 | `src/gemini_client.py`: prompt con delimitadores, respuesta en JSON, temperatura 0.2 y tiempo de espera. | RF-04, RF-05, RF-22, RF-23, RNF-12, RNF-13 | Claude Code | ⬜ | `test_gemini_client.py` (con mocks) pasa. |
 | T-18 | Traducir los errores de Gemini (falta de clave, clave inválida, red, cuota, JSON inválido) a las excepciones propias. | RF-18, sección 7 | Claude Code | ⬜ | Las pruebas de error con mock pasan. |
 | T-19 | `src/asistente.py`: controles anti-invención (fuentes, mensaje fijo, verificación de montos, dos partes, recorte a 400). | RF-06, RF-07, RF-10, RF-21, RF-24, RF-25 | Claude Code | ⬜ | `test_asistente.py` pasa. |
@@ -158,7 +158,7 @@ El laboratorio pide al menos tres. Se registran aquí con datos reales a medida 
 
 | Ciclo | Tarea | Prompt usado | Código generado | Ejecución | Error u observación | Corrección | Resultado |
 |---|---|---|---|---|---|---|---|
-| **C-01** | | | | | | | |
+| **C-01** | T-16 | Comando de verificación del modelo: `m = genai.Client(api_key=...).models.get(model=c.gemini_model)` (cliente creado y usado en una sola línea). | Comando de una línea en la Terminal. | 2026-11-25: falla con `RuntimeError: Cannot send a request, as the client has been closed.` (captura `evidencias/evidencia t16 error C-01.png`). | El cliente de Gemini no se guardó en una variable: Python lo cerró antes de enviar la consulta. No era un problema de la clave ni del modelo. | Guardar el cliente en una variable (`client = genai.Client(...)`) y luego llamar `client.models.get(...)`. **Regla para T-17:** en `gemini_client.py`, el cliente se crea una vez y se guarda; no se encadena en una sola línea. | Responde `models/gemini-3.5-flash-lite` · entrada 1 048 576 · salida 65 536. Modelo confirmado (captura `evidencias/evidencia t16.png`). |
 | **C-02** | | | | | | | |
 | **C-03** | | | | | | | |
 | **C-04** | | | | | | | |
@@ -219,8 +219,8 @@ Se completa en la tarea T-34.
 |---|---|---|
 | Versión de Python | 3.14.7 (cumple 3.11+) | 2026-11-23 |
 | Repositorio GitHub | https://github.com/yeimyalvarado2708-gif/lab_2_Personal-shopper (público) | 2026-11-23 |
-| Modelo de Gemini confirmado | | |
-| Límites gratuitos de Gemini vigentes | | |
+| Modelo de Gemini confirmado | `gemini-3.5-flash-lite` (entrada 1 048 576 tokens, salida 65 536) | 2026-11-25 |
+| Límites gratuitos de Gemini vigentes | Gemini 3.5 Flash Lite: 15 solicitudes por minuto (RPM) · 250 000 tokens por minuto (TPM) · 500 solicitudes por día (RPD) | 2026-11-25 |
 | Voz de ElevenLabs (nombre, no la clave) | | |
 | Créditos de ElevenLabs disponibles | | |
 | Versiones de las dependencias (`streamlit`, `google-genai`, `elevenlabs`, `python-dotenv`, `pytest`) | streamlit 1.67.0 · google-genai 3.6.1 · elevenlabs 2.79.0 · python-dotenv 1.2.4 · pytest 9.2.0 | 2026-11-23 |
@@ -239,3 +239,5 @@ Se completa en la tarea T-34.
 | 2026-11-24 | 1.5 | T-13 completada, con su commit, su evidencia y las decisiones aprobadas. |
 | 2026-11-24 | 1.6 | T-14 completada, con su commit y su evidencia. Termina la lógica de la calculadora. |
 | 2026-11-24 | 1.7 | T-15 completada, con su commit y su evidencia. Termina la fase 1. |
+| 2026-11-25 | 1.8 | T-16 en curso: modelo confirmado y clave configurada; falta anotar los límites gratuitos. Primer ciclo de desarrollo C-01 registrado. |
+| 2026-11-25 | 1.9 | T-16 completada: límites gratuitos de Gemini 3.5 Flash Lite anotados (15 RPM · 250K TPM · 500 RPD). |
