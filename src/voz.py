@@ -11,10 +11,12 @@ de Yeimy del 2026-11-25):
 1. Se quitan los símbolos que no se pronuncian: ``*``, ``#``, ``_``, ``` ` ``` y ``~``.
 2. Teléfonos de 8 dígitos ("8888-0000", "8888 0000", "88880000") → dígito
    por dígito: "8 8 8 8, 0 0 0 0".
-3. Montos → número sin separador de miles + "colones":
-   "₡36.500" → "36500 colones"; "2.000 colones" → "2000 colones".
-   Los céntimos se dejan con coma (decisión de Yeimy): "₡14.999,99" →
-   "14999,99 colones".
+3. Montos enteros → número **en palabras** + "colones" (decisión de Yeimy,
+   ciclo C-04): "₡36.500" → "treinta y seis mil quinientos colones";
+   "2.000 colones" → "dos mil colones". Con dígitos ("40000 colones") la voz
+   leía mal las cifras de 5 dígitos.
+   Los montos con céntimos se dejan como en T-22, sin separador de miles y con
+   coma (decisión de Yeimy): "₡14.999,99" → "14999,99 colones".
 4. ``%``, ``+`` y ``=`` → palabras (decisión de Yeimy): "15%" → "15 por ciento",
    " + " → " más ", " = " → " es igual a ". La voz multilingüe a veces los lee
    en inglés o se los salta.
@@ -101,15 +103,84 @@ def _sin_separador_de_miles(numero: str) -> str:
     return re.sub(r"[.  ]", "", numero)
 
 
+_UNIDADES = (
+    "cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve",
+    "diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete",
+    "dieciocho", "diecinueve", "veinte", "veintiuno", "veintidós", "veintitrés",
+    "veinticuatro", "veinticinco", "veintiséis", "veintisiete", "veintiocho", "veintinueve",
+)
+_DECENAS = ("", "", "", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta",
+            "ochenta", "noventa")
+_CENTENAS = ("", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos",
+             "seiscientos", "setecientos", "ochocientos", "novecientos")
+_MAXIMO_EN_PALABRAS = 999_999_999
+
+
+def _hasta_999(n: int) -> str:
+    if n == 100:
+        return "cien"
+    centena, resto = divmod(n, 100)
+    partes = [_CENTENAS[centena]] if centena else []
+    if resto:
+        if resto < 30:
+            partes.append(_UNIDADES[resto])
+        else:
+            decena, unidad = divmod(resto, 10)
+            partes.append(_DECENAS[decena] + (f" y {_UNIDADES[unidad]}" if unidad else ""))
+    return " ".join(partes)
+
+
+def _apocope(texto: str) -> str:
+    """"uno" → "un" y "veintiuno" → "veintiún" delante de un sustantivo
+    ("un colón", "veintiún mil", "treinta y un millones")."""
+    if texto.endswith("veintiuno"):
+        return texto[: -len("veintiuno")] + "veintiún"
+    if texto.endswith("uno"):
+        return texto[: -len("uno")] + "un"
+    return texto
+
+
+def numero_en_palabras(n: int) -> str:
+    """Entero de 0 a 999 999 999 en palabras: 36500 → "treinta y seis mil quinientos"."""
+    if not 0 <= n <= _MAXIMO_EN_PALABRAS:
+        raise ValueError(f"Fuera de rango: {n}")
+    if n == 0:
+        return "cero"
+    millones, resto = divmod(n, 1_000_000)
+    miles, unidades = divmod(resto, 1000)
+    partes = []
+    if millones:
+        partes.append("un millón" if millones == 1 else f"{_apocope(_hasta_999(millones))} millones")
+    if miles:
+        partes.append("mil" if miles == 1 else f"{_apocope(_hasta_999(miles))} mil")
+    if unidades:
+        partes.append(_hasta_999(unidades))
+    return " ".join(partes)
+
+
+def monto_en_palabras(n: int) -> str:
+    """36500 → "treinta y seis mil quinientos colones"; 1 → "un colón";
+    1000000 → "un millón de colones"."""
+    if n == 1:
+        return "un colón"
+    texto = _apocope(numero_en_palabras(n))
+    if n >= 1_000_000 and n % 1_000_000 == 0:  # "dos millones de colones"
+        texto += " de"
+    return f"{texto} colones"
+
+
 def _monto_en_colones(coincidencia: re.Match) -> str:
-    return f"{_sin_separador_de_miles(coincidencia.group(1))} colones"
+    numero = _sin_separador_de_miles(coincidencia.group(1))
+    if "," in numero or int(numero) > _MAXIMO_EN_PALABRAS:
+        return f"{numero} colones"  # céntimos: como en T-22 (decisión de Yeimy)
+    return monto_en_palabras(int(numero))
 
 
 def normalizar_para_audio(texto: str) -> str:
     """Prepara el texto de la respuesta para que la voz lo lea bien (RF-26).
 
     >>> normalizar_para_audio("El total es ₡36.500.")
-    'El total es 36500 colones.'
+    'El total es treinta y seis mil quinientos colones.'
     >>> normalizar_para_audio("SINPE al 8888-0000")
     'SINPE al 8 8 8 8, 0 0 0 0'
     """

@@ -39,8 +39,8 @@ BASE = cargar_base()
 # ---------- los 4 casos de la sección 5.6.1 del spec ----------
 
 @pytest.mark.parametrize("entrada, esperado", [
-    ("El total es ₡36.500.", "El total es 36500 colones."),
-    ("Envío de ₡2.000", "Envío de 2000 colones"),
+    ("El total es ₡36.500.", "El total es treinta y seis mil quinientos colones."),
+    ("Envío de ₡2.000", "Envío de dos mil colones"),
     ("SINPE al 8888-0000", "SINPE al 8 8 8 8, 0 0 0 0"),
     ("**Importante:** pague antes", "Importante: pague antes"),
 ])
@@ -51,15 +51,16 @@ def test_casos_del_spec(entrada, esperado):
 # ---------- montos ----------
 
 @pytest.mark.parametrize("entrada, esperado", [
-    ("₡2000", "2000 colones"),
-    ("₡ 2.000", "2000 colones"),
-    ("₡500", "500 colones"),
-    ("₡1.250.000", "1250000 colones"),
-    ("2.000 colones", "2000 colones"),
-    ("₡2.000 colones", "2000 colones"),           # no repite "colones"
-    ("₡15.000 y ₡40.000", "15000 colones y 40000 colones"),
-    ("(₡4.500)", "(4500 colones)"),
-    ("₡40.000.", "40000 colones."),                # el punto final no es parte del monto
+    ("₡2000", "dos mil colones"),
+    ("₡ 2.000", "dos mil colones"),
+    ("₡500", "quinientos colones"),
+    ("₡1.250.000", "un millón doscientos cincuenta mil colones"),
+    ("2.000 colones", "dos mil colones"),
+    ("₡2.000 colones", "dos mil colones"),        # no repite "colones"
+    ("₡15.000 y ₡40.000", "quince mil colones y cuarenta mil colones"),  # el caso de C-04
+    ("(₡4.500)", "(cuatro mil quinientos colones)"),
+    ("₡40.000.", "cuarenta mil colones."),         # el punto final no es parte del monto
+    ("30 mil colones", "30 mil colones"),          # ya viene en palabras: no se toca
 ])
 def test_montos_en_colones(entrada, esperado):
     assert normalizar_para_audio(entrada) == esperado
@@ -72,6 +73,34 @@ def test_montos_en_colones(entrada, esperado):
 def test_centimos_se_dejan_con_coma(entrada, esperado):
     """Decisión de Yeimy: los céntimos se leen con coma."""
     assert normalizar_para_audio(entrada) == esperado
+
+
+@pytest.mark.parametrize("numero, palabras", [
+    (0, "cero colones"), (1, "un colón"), (2, "dos colones"), (15, "quince colones"),
+    (16, "dieciséis colones"), (21, "veintiún colones"), (22, "veintidós colones"),
+    (31, "treinta y un colones"), (100, "cien colones"), (101, "ciento un colones"),
+    (500, "quinientos colones"), (1000, "mil colones"), (2000, "dos mil colones"),
+    (4500, "cuatro mil quinientos colones"), (14999, "catorce mil novecientos noventa y nueve colones"),
+    (15000, "quince mil colones"), (21000, "veintiún mil colones"), (31000, "treinta y un mil colones"),
+    (34500, "treinta y cuatro mil quinientos colones"), (36500, "treinta y seis mil quinientos colones"),
+    (40000, "cuarenta mil colones"), (100000, "cien mil colones"), (121000, "ciento veintiún mil colones"),
+    (1000000, "un millón de colones"), (2000000, "dos millones de colones"),
+    (1250000, "un millón doscientos cincuenta mil colones"),
+    (21000000, "veintiún millones de colones"),
+])
+def test_monto_en_palabras(numero, palabras):
+    """Ciclo C-04 (decisión de Yeimy): los montos se dicen en palabras."""
+    assert voz.monto_en_palabras(numero) == palabras
+
+
+def test_monto_muy_grande_se_deja_en_digitos():
+    assert normalizar_para_audio("₡1.000.000.000") == "1000000000 colones"
+
+
+def test_los_montos_de_la_base_no_quedan_en_digitos():
+    """Ningún monto entero de las respuestas de la base llega a la voz como dígitos."""
+    for faq in BASE["preguntas"]:
+        assert not re.search(r"\d+ colones", normalizar_para_audio(faq["respuesta"])), faq["id"]
 
 
 # ---------- teléfonos ----------
@@ -87,10 +116,10 @@ def test_telefonos_digito_por_digito(entrada, esperado):
 
 
 @pytest.mark.parametrize("entrada, esperado", [
-    ("₡88880000", "88880000 colones"),
-    ("88880000 colones", "88880000 colones"),
+    ("₡88880000", "ochenta y ocho millones ochocientos ochenta mil colones"),
+    ("88880000 colones", "ochenta y ocho millones ochocientos ochenta mil colones"),
     ("En 23 barrios", "En 23 barrios"),
-    ("₡1.250.000", "1250000 colones"),
+    ("₡1.250.000", "un millón doscientos cincuenta mil colones"),
 ])
 def test_montos_y_otros_numeros_no_se_leen_como_telefono(entrada, esperado):
     assert normalizar_para_audio(entrada) == esperado
@@ -135,15 +164,15 @@ def test_ejemplo_de_faq03():
     faq03 = next(f for f in BASE["preguntas"] if f["id"] == "FAQ-03")
     audio = normalizar_para_audio(faq03["respuesta"])
     assert audio.startswith("Total es igual a factura de PriceSmart más cargo del servicio")
-    assert ("factura de 30000 colones más 15 por ciento (4500 colones) "
-            "es igual a 34500 colones") in audio
-    assert "36500 colones." in audio
+    assert ("factura de treinta mil colones más 15 por ciento (cuatro mil quinientos colones) "
+            "es igual a treinta y cuatro mil quinientos colones") in audio
+    assert "treinta y seis mil quinientos colones." in audio
 
 
 def test_mensaje_de_la_calculadora():
     audio = normalizar_para_audio(asistente.mensaje_calculadora(BASE))
     assert "del 10 por ciento al 20 por ciento" in audio
-    assert "y 2000 colones si la entrega" in audio
+    assert "y dos mil colones si la entrega" in audio
 
 
 def test_mensaje_sin_informacion():
@@ -222,7 +251,7 @@ def test_genera_audio_y_lo_guarda_en_la_cache(tmp_path):
     resultado = voz.sintetizar("El total es ₡36.500.", config_voz(), cliente, tmp_path)
 
     assert resultado == {"audio": AUDIO, "desde_cache": False, "recortado": False}
-    esperado = hashlib.sha256(("El total es 36500 colones." + VOZ + MODELO).encode()).hexdigest()
+    esperado = hashlib.sha256(("El total es treinta y seis mil quinientos colones." + VOZ + MODELO).encode()).hexdigest()
     assert (tmp_path / f"{esperado}.mp3").read_bytes() == AUDIO
     assert not list(tmp_path.glob("*.tmp"))
 
@@ -419,7 +448,7 @@ def test_sdk_real_envia_la_solicitud_correcta(tmp_path):
     assert pedido.url.path == f"/v1/text-to-speech/{VOZ}"
     assert pedido.url.params["output_format"] == "mp3_44100_128"
     cuerpo = json.loads(pedido.content)
-    assert cuerpo["text"] == "Cuesta 2000 colones."
+    assert cuerpo["text"] == "Cuesta dos mil colones."
     assert cuerpo["model_id"] == MODELO
 
 
