@@ -12,7 +12,7 @@ Requisitos: RF-06, RF-07, RF-10, RF-21, RF-24, RF-25 (spec 4.2, pasos 2 a 7).
    b. RF-21: sin información suficiente (o "suficiente" sin fuentes válidas)
       → mensaje fijo con WhatsApp. El texto de Gemini se descarta.
    c. RF-24: un monto en colones o un porcentaje que no existe en la base
-      → mensaje fijo de la calculadora.
+      → mensaje fijo de la calculadora (con porcentajes y entrega de ``tarifas``).
    d. RF-25: ``aclaracion_pendiente`` → se agrega el texto fijo de WhatsApp.
    e. RF-10: la respuesta completa tiene máximo 400 caracteres.
 
@@ -36,14 +36,18 @@ import re
 from datetime import date
 
 from src import demo, gemini_client
-from src.calculadora import hoy_costa_rica, proxima_fecha_compra
+from src.calculadora import formatear_colones, hoy_costa_rica, proxima_fecha_compra
 from src.config import Config, cargar_config
 from src.validacion import validar_pregunta
 
 logger = logging.getLogger("personal_shopper")
 
-# RF-24: texto fijo cuando la respuesta trae un monto que no está en la base.
-MENSAJE_CALCULADORA = (
+# RF-24: plantilla del texto fijo cuando la respuesta trae un monto o un
+# porcentaje que no está en la base. Los porcentajes y el costo de entrega se
+# toman de ``tarifas`` (decisión de Yeimy): ver ``mensaje_calculadora()``.
+PLANTILLA_CALCULADORA = (
+    "El total es su factura más un cargo de servicio del {minimo}% al {maximo}% "
+    "según el monto, y {entrega} si la entrega es en una zona con cargo. "
     "Para calcular su cuenta, use la calculadora de estimado en esta misma página."
 )
 
@@ -168,6 +172,27 @@ def recortar(texto: str, limite: int) -> tuple[str, bool]:
 
 # ---------- controles (RF-07, RF-21, RF-24, RF-25, RF-10) ----------
 
+def _porcentaje_en_texto(valor: float) -> str:
+    """20 → "20"; 12.5 → "12,5" (coma decimal de Costa Rica)."""
+    return f"{valor:g}".replace(".", ",")
+
+
+def mensaje_calculadora(base: dict) -> str:
+    """Texto fijo de RF-24, armado con ``tarifas`` de la base.
+
+    El menor y el mayor porcentaje salen de ``rangos_servicio`` y el costo de
+    entrega de ``entrega_domicilio_con_cargo``: si cambian las tarifas, el
+    mensaje cambia sin tocar el código.
+    """
+    tarifas = base["tarifas"]
+    porcentajes = [float(r["porcentaje"]) for r in tarifas["rangos_servicio"]]
+    return PLANTILLA_CALCULADORA.format(
+        minimo=_porcentaje_en_texto(min(porcentajes)),
+        maximo=_porcentaje_en_texto(max(porcentajes)),
+        entrega=formatear_colones(tarifas["entrega_domicilio_con_cargo"]),
+    )
+
+
 def texto_aclaracion(base: dict) -> str:
     """Texto fijo de RF-25, con el número de ``negocio.contacto_humano``."""
     return f"Para lo demás, escríbanos por WhatsApp al {demo.telefono_whatsapp(base)}."
@@ -242,7 +267,7 @@ def aplicar_controles(
         problemas = numeros_no_permitidos(respuesta, base, pregunta)
         if problemas:
             controles.append(f"RF-24: {'; '.join(problemas)}; se usa el mensaje de la calculadora")
-            final["respuesta"] = MENSAJE_CALCULADORA
+            final["respuesta"] = mensaje_calculadora(base)
             final["aclaracion_pendiente"] = False
 
         # d. RF-25 y e. RF-10: el texto fijo se agrega completo y el recorte

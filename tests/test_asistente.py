@@ -21,6 +21,11 @@ MENSAJE_SIN_INFO = (
     "No tengo esa información. Escríbanos por WhatsApp al 8888-0000 y con gusto le ayudamos."
 )
 ACLARACION = "Para lo demás, escríbanos por WhatsApp al 8888-0000."
+MENSAJE_CALCULADORA = (
+    "El total es su factura más un cargo de servicio del 10% al 20% según el monto, "
+    "y ₡2.000 si la entrega es en una zona con cargo. "
+    "Para calcular su cuenta, use la calculadora de estimado en esta misma página."
+)
 
 
 def gemini(respuesta="Puede pagar por SINPE Móvil al 8888-0000.", fuentes=("FAQ-14",),
@@ -125,7 +130,7 @@ def test_montos_de_la_base_se_aceptan_en_cualquier_formato(texto):
 def test_monto_que_no_existe_da_el_mensaje_de_la_calculadora(texto):
     final = controlar(gemini(texto, fuentes=["FAQ-03"], categoria="Tarifas"),
                       pregunta="¿Cuánto se cobra?")
-    assert final["respuesta"] == asistente.MENSAJE_CALCULADORA
+    assert final["respuesta"] == MENSAJE_CALCULADORA
     assert final["fuentes"] == ["FAQ-03"]
     assert any(c.startswith("RF-24") for c in final["controles"])
 
@@ -134,7 +139,7 @@ def test_monto_que_no_existe_da_el_mensaje_de_la_calculadora(texto):
 def test_porcentaje_que_no_existe_da_el_mensaje_de_la_calculadora(texto):
     final = controlar(gemini(texto, fuentes=["FAQ-02"], categoria="Tarifas"),
                       pregunta="¿Cuánto cobran?")
-    assert final["respuesta"] == asistente.MENSAJE_CALCULADORA
+    assert final["respuesta"] == MENSAJE_CALCULADORA
 
 
 def test_el_telefono_y_las_fechas_no_cuentan_como_montos():
@@ -150,7 +155,7 @@ def test_ev29_el_ejemplo_de_faq03_no_pasa_si_el_cliente_pidio_ese_calculo():
     cita_del_ejemplo = gemini("Con una factura de ₡30.000 y entrega en La Trocha, son ₡36.500.",
                               fuentes=["FAQ-03"], categoria="Tarifas")
     final = controlar(cita_del_ejemplo, pregunta=pregunta)
-    assert final["respuesta"] == asistente.MENSAJE_CALCULADORA
+    assert final["respuesta"] == MENSAJE_CALCULADORA
     assert "36.500" not in final["respuesta"]
     assert "calculadora" in final["respuesta"]
 
@@ -164,7 +169,7 @@ def test_ev29_el_ejemplo_de_faq03_no_pasa_si_el_cliente_pidio_ese_calculo():
 def test_si_el_cliente_escribe_un_monto_no_se_repite_ni_se_calcula(pregunta):
     texto = "Para ₡22.000 el cargo es 15%, es decir ₡3.300."
     final = controlar(gemini(texto, fuentes=["FAQ-03"], categoria="Tarifas"), pregunta=pregunta)
-    assert final["respuesta"] == asistente.MENSAJE_CALCULADORA
+    assert final["respuesta"] == MENSAJE_CALCULADORA
 
 
 def test_si_el_cliente_escribe_un_monto_se_permiten_las_tarifas_fijas():
@@ -202,7 +207,7 @@ def test_aclaracion_con_texto_largo_no_pasa_del_limite():
 def test_si_rf24_reemplaza_el_texto_no_se_agrega_la_aclaracion():
     final = controlar(gemini("El total es ₡25.300.", fuentes=["FAQ-03"], aclaracion=True),
                       pregunta="¿Cuánto cobran y dan factura?")
-    assert final["respuesta"] == asistente.MENSAJE_CALCULADORA
+    assert final["respuesta"] == MENSAJE_CALCULADORA
 
 
 # ---------- RF-10: recorte a 400 caracteres ----------
@@ -305,3 +310,49 @@ def test_los_controles_no_registran_la_pregunta(caplog, monkeypatch):
         asistente.responder("Mi pregunta privada sobre pagos", BASE, config())
     assert "RF-07" in caplog.text
     assert "Mi pregunta privada" not in caplog.text  # RNF-15
+
+
+# ---------- RF-24: mensaje de la calculadora ----------
+
+def test_mensaje_calculadora_es_el_texto_aprobado():
+    assert asistente.mensaje_calculadora(BASE) == MENSAJE_CALCULADORA
+
+
+@pytest.mark.parametrize("prefijo", ["", PREFIJO_SIMULADA])
+def test_mensaje_calculadora_no_pasa_de_400_caracteres(prefijo):
+    final = controlar(gemini("Pagaría ₡36.500.", fuentes=["FAQ-03"], categoria="Tarifas"),
+                      pregunta="¿Cuánto pago por ₡30.000 con entrega en La Trocha?",
+                      prefijo=prefijo)
+    assert len(asistente.mensaje_calculadora(BASE)) <= LIMITE
+    assert len(final["respuesta"]) <= LIMITE
+    esperado = f"{prefijo} {MENSAJE_CALCULADORA}" if prefijo else MENSAJE_CALCULADORA
+    assert final["respuesta"] == esperado
+    assert final["recortado"] is False
+
+
+@pytest.mark.parametrize("pregunta", [
+    "¿Cuánto se cobra?",                                     # sin monto: modo normal
+    "¿Cuánto pago por ₡30.000 con entrega en La Trocha?",    # EV-29: modo estricto
+    "Si compro ₡22.000, ¿cuánto es el total?",               # EV-30
+    "Tengo ₡100.000 en productos, ¿cuánto le deposito?",     # EV-31
+])
+def test_el_control_de_montos_no_bloquea_el_mensaje_de_la_calculadora(pregunta):
+    mensaje = asistente.mensaje_calculadora(BASE)
+    assert asistente.numeros_no_permitidos(mensaje, BASE, pregunta) == []
+    final = controlar(gemini(mensaje, fuentes=["FAQ-03"], categoria="Tarifas"), pregunta=pregunta)
+    assert final["respuesta"] == mensaje
+    assert final["controles"] == []
+
+
+def test_mensaje_calculadora_sale_de_tarifas_no_del_codigo():
+    otra = {**BASE, "tarifas": {
+        **BASE["tarifas"],
+        "rangos_servicio": [{"desde": 0, "hasta": 9999.99, "porcentaje": 25},
+                            {"desde": 10000, "hasta": None, "porcentaje": 12.5}],
+        "entrega_domicilio_con_cargo": 2500,
+    }}
+    mensaje = asistente.mensaje_calculadora(otra)
+    assert "del 12,5% al 25%" in mensaje
+    assert "₡2.500 si la entrega" in mensaje
+    assert "20%" not in mensaje and "₡2.000" not in mensaje
+    assert asistente.numeros_no_permitidos(mensaje, otra, "Si compro ₡22.000, ¿cuánto es?") == []
