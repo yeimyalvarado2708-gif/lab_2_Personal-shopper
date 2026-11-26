@@ -78,7 +78,7 @@ Streamlit abre la app en el navegador (normalmente en `http://localhost:8501`). 
 - **Estimar:** calcula el total con el monto de la factura, la zona de entrega y si es la primera compra. Funciona sin internet y no usa ninguna API.
 - **Historial:** las consultas de la sesión, de la más nueva a la más antigua. Vive solo en memoria: se borra al recargar la página.
 
-> **Importante (Visual Studio Code):** la Terminal de VS Code puede cargar las variables del `.env` al abrirse, y esas variables tienen prioridad sobre el archivo. Si cambia `MODO_DEMO` (u otra variable) en `.env` y la app no toma el cambio, abra una **Terminal nueva** o indíquela en el mismo comando, por ejemplo `MODO_DEMO=false streamlit run app.py`.
+> **Importante (Visual Studio Code):** la Terminal de VS Code puede cargar las variables del `.env` al abrirse, y esas variables tienen prioridad sobre el archivo. Si cambia `MODO_DEMO` (u otra variable) en `.env` y la app no toma el cambio, abra una **Terminal nueva** o indíquela en el mismo comando, por ejemplo `MODO_DEMO=false streamlit run app.py`. Por la misma razón, `python -m src.config` puede decir "configurada" aunque el `.env` esté vacío, si la Terminal ya trae esas variables (pasa con la opción `python.terminal.useEnvFile` de VS Code, incluso después de cambiar de carpeta).
 
 > Si cambia el código o los estilos con la app abierta y no ve el cambio al recargar el navegador, detenga la app con `Ctrl+C` y vuelva a iniciarla.
 
