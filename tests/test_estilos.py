@@ -194,3 +194,13 @@ def test_el_script_no_toca_textos_del_cliente():
     script = estilos.SCRIPT_IDIOMA
     for prohibido in ("innerHTML", "innerText", "textContent", "fetch", "localStorage", "eval"):
         assert prohibido not in script
+
+
+def test_la_tarjeta_de_la_app_crece_con_su_contenido():
+    """Ajuste de T-28: con overflow hidden y la tarjeta encogida al alto de la ventana,
+    el historial largo quedaba cortado y no se podía bajar."""
+    css = estilos.CSS
+    bloque = css[css.index('[data-testid="stMainBlockContainer"] {'):]
+    bloque = bloque[:bloque.index("}")]
+    assert "overflow: hidden" in bloque
+    assert "flex-shrink: 0" in bloque and "height: auto" in bloque

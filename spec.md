@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.12 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25 · 1.6: RF-20, 5.6 y sección 7 precisados en T-23 el 2026-11-25 · 1.7: diseño de la interfaz, D-12 a D-18, 2026-11-25 · 1.8: saludo con "usted" y selectores de Streamlit 1.67, en T-25 el 2026-11-25 · 1.9: RF-09 y D-15 precisados en T-26 el 2026-11-25 · 1.10: RF-26 y 5.6.1, montos en palabras para la voz, ciclo C-04 del 2026-11-25 · 1.11: D-16 precisado en T-27 el 2026-11-25 · 1.12: excepción de D-17 para marcar la página en español, 2026-11-25)
+**Versión:** 1.13 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25 · 1.6: RF-20, 5.6 y sección 7 precisados en T-23 el 2026-11-25 · 1.7: diseño de la interfaz, D-12 a D-18, 2026-11-25 · 1.8: saludo con "usted" y selectores de Streamlit 1.67, en T-25 el 2026-11-25 · 1.9: RF-09 y D-15 precisados en T-26 el 2026-11-25 · 1.10: RF-26 y 5.6.1, montos en palabras para la voz, ciclo C-04 del 2026-11-25 · 1.11: D-16 precisado en T-27 el 2026-11-25 · 1.12: excepción de D-17 para marcar la página en español, 2026-11-25 · 1.13: RF-17 precisado en T-28 el 2026-11-25)
 **Documento relacionado:** `intent.md` v1.0
 
 ---
@@ -81,7 +81,7 @@ Estas decisiones las tomó la autora antes de escribir la especificación. Todo 
 
 | ID | Requisito |
 |---|---|
-| **RF-17** | El sistema debe guardar durante la sesión el historial de interacciones (pregunta, respuesta, fuente, categoría, hora y estado del audio) y mostrar como mínimo las últimas cinco, de la más reciente a la más antigua. |
+| **RF-17** | El sistema debe guardar durante la sesión el historial de interacciones (pregunta, respuesta, fuente, categoría, hora y estado del audio) y mostrar como mínimo las últimas cinco, de la más reciente a la más antigua. **Precisiones de T-28 (decisiones de Yeimy, 2026-11-25):** se muestran todas las consultas de la sesión; cada una muestra el estado del audio y, si lo tiene, su reproductor (desde la memoria, sin gastar créditos); la hora va en formato de 12 horas en hora de Costa Rica ("10:47 p. m."); las preguntas que no pasan la validación no se guardan. |
 | **RF-18** | El sistema debe mostrar mensajes de error amigables, en español y sin detalles técnicos, cuando Gemini o ElevenLabs fallen (ver la sección 7). |
 | **RF-19** | Si ElevenLabs falla, el sistema debe mostrar igual la respuesta en texto, con un aviso de que el audio no está disponible. |
 | **RF-20** | Con `MODO_DEMO=true`, el sistema no debe llamar a ninguna API. Debe responder con la FAQ que mejor coincida por palabras clave, marcando la respuesta como **[RESPUESTA SIMULADA]**, y sin generar audio (con un aviso). Un banner visible debe indicar que la app está en modo demostración. **Aviso de audio (decisión de Yeimy en T-23, 2026-11-25):** *"Modo demostración: el audio no está disponible."* |

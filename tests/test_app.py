@@ -4,6 +4,7 @@ Corren en modo demo: no llaman a Gemini ni a ElevenLabs. Los casos de error
 reemplazan ``responder`` por una función falsa.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,15 @@ def htmls(at):
     return "\n".join(h.proto.body for h in at.html if not h.proto.body.lstrip().startswith("<style>"))
 
 
+def en_preguntar(at):
+    """La pestaña Preguntar (el historial repite preguntas y audios en su propia pestaña)."""
+    return at.tabs[0]
+
+
+def html_preguntar(at):
+    return "\n".join(h.proto.body for h in en_preguntar(at).get("html"))
+
+
 def preguntar(at, texto):
     at.text_input(key="campo_pregunta").input(texto)
     at.button(key="enviar").click()
@@ -53,7 +63,7 @@ def test_la_app_abre_con_la_estructura_de_d13():
     assert "Próxima compra:" in pagina or "aún no está definida" in pagina  # D-14
     assert "¿Necesita información de nuestro servicio?" in pagina
     assert "¡Yo te lo compro!" in pagina
-    assert [t.label.split()[-1] for t in at.tabs] == ["Preguntar", "Estimar", "Historial"]
+    assert [t.label.split(" ", 1)[1] for t in at.tabs] == ["Preguntar", "Estimar", "Historial (0)"]
     assert [b.label for b in at.button] == [
         "¿Cuánto cobran?", "¿Número de SINPE?", "¿Próxima compra?", "Enviar"]
 
@@ -85,7 +95,7 @@ def test_solo_se_ve_la_ultima_pregunta():
     """Decisión de Yeimy: la pestaña Preguntar muestra solo la última conversación."""
     at = preguntar(abrir(), "¿A qué número hago el SINPE?")
     at = preguntar(at, "¿Venden ropa?")
-    pagina = htmls(at)
+    pagina = html_preguntar(at)
     assert "¿Venden ropa?" in pagina
     assert "¿A qué número hago el SINPE?" not in pagina
     assert "Fuente:" not in pagina  # RF-21: sin fuente
@@ -175,7 +185,7 @@ def con_respuesta(monkeypatch, resultado):
 
 def test_respuesta_con_reproductor_que_no_suena_solo(monkeypatch):
     at = con_respuesta(monkeypatch, respuesta())
-    reproductores = at.get("audio")
+    reproductores = en_preguntar(at).get("audio")
     assert len(reproductores) == 1
     assert reproductores[0].proto.url.endswith(".mp3")
     assert not reproductores[0].proto.autoplay  # D-03
@@ -210,7 +220,7 @@ def test_sin_informacion_boton_de_whatsapp_en_lugar_del_audio():
 
 def test_dos_partes_audio_y_boton_de_whatsapp(monkeypatch):
     at = con_respuesta(monkeypatch, respuesta(aclaracion_pendiente=True))
-    assert len(at.get("audio")) == 1
+    assert len(en_preguntar(at).get("audio")) == 1
     assert len(at.get("link_button")) == 1
 
 
@@ -319,3 +329,81 @@ def test_la_app_inserta_el_script_de_idioma():
     """Ajuste de T-27: Chrome no debe traducir la página (cambiaba "cargo" por "carga")."""
     at = abrir()
     assert any('raiz.lang = "es"' in h.proto.body for h in at.html)
+
+
+# ---------- T-28: pestaña Historial (RF-17, RNF-15) ----------
+
+def en_historial(at):
+    return at.tabs[2]
+
+
+def html_historial(at):
+    return "\n".join(h.proto.body for h in en_historial(at).get("html"))
+
+
+def test_historial_empieza_vacio():
+    at = abrir()
+    assert at.tabs[2].label.endswith("Historial (0)")
+    assert "Sus preguntas de esta sesión aparecerán aquí." in html_historial(at)
+    assert "Se borra al cerrar o recargar la página." in html_historial(at)
+
+
+def test_despues_de_6_consultas_se_ven_todas_de_la_mas_nueva_a_la_mas_vieja():
+    """Prueba de aceptación de RF-17 (spec, sección 11) y decisión de Yeimy: todas."""
+    preguntas = ["¿A qué número hago el SINPE?", "¿Cuánto cobran?", "¿Cuándo es la próxima compra?",
+                 "¿Venden ropa?", "¿Entregan en Pinares?", "¿Cómo pago?"]
+    at = abrir()
+    for p in preguntas:
+        at = preguntar(at, p)
+    assert at.tabs[2].label.endswith("Historial (6)")
+    pagina = html_historial(at)
+    posiciones = [pagina.index(f'ps-consulta-pregunta">{p}<') for p in preguntas]
+    assert posiciones == sorted(posiciones, reverse=True)  # la última pregunta va primero
+    assert "Sus preguntas de esta sesión" not in pagina
+
+
+def test_cada_consulta_tiene_lo_que_pide_rf17():
+    at = preguntar(abrir(), "¿A qué número hago el SINPE?")
+    pagina = html_historial(at)
+    assert re.search(r'class="ps-meta"><span>\d{1,2}:\d{2} [ap]\. m\.</span><span>Pagos · FAQ-14</span>', pagina)
+    assert "8888-0000" in pagina  # la respuesta
+    assert "Modo demo: sin audio" in pagina  # estado del audio
+
+
+def test_consulta_con_audio_tiene_su_reproductor_en_el_historial(monkeypatch):
+    """Decisión de Yeimy: estado y reproductor (desde la memoria, sin gastar créditos)."""
+    at = con_respuesta(monkeypatch, respuesta())
+    assert "🔊 Con audio" in html_historial(at)
+    reproductores = en_historial(at).get("audio")
+    assert len(reproductores) == 1 and not reproductores[0].proto.autoplay
+
+
+def test_error_del_servicio_se_guarda_como_sin_respuesta(monkeypatch):
+    """Spec, sección 7."""
+    monkeypatch.setattr(asistente, "responder", lambda *a, **k: (_ for _ in ()).throw(ErrorConexion()))
+    at = preguntar(abrir(), "¿Cómo pago?")
+    pagina = html_historial(at)
+    assert at.tabs[2].label.endswith("Historial (1)")
+    assert 'ps-consulta-respuesta">Sin respuesta<' in pagina
+
+
+def test_pregunta_invalida_no_se_guarda():
+    """Decisión de Yeimy: las preguntas que no pasan la validación no son consultas."""
+    at = preguntar(abrir(), "   ")
+    assert at.tabs[2].label.endswith("Historial (0)")
+
+
+def test_el_historial_es_de_la_sesion_y_no_se_guarda_en_disco(tmp_path, monkeypatch):
+    """RNF-15: una sesión nueva (recargar la página) empieza vacía; nada se escribe en disco."""
+    monkeypatch.chdir(tmp_path)
+    at = preguntar(abrir(), "¿A qué número hago el SINPE?")
+    assert at.tabs[2].label.endswith("Historial (1)")
+    assert list(tmp_path.iterdir()) == []
+    nueva = abrir()
+    assert nueva.tabs[2].label.endswith("Historial (0)")
+
+
+def test_la_pregunta_del_historial_se_escapa():
+    at = preguntar(abrir(), "<b>hola</b> ¿SINPE?")
+    assert "<b>hola</b>" not in html_historial(at)
+

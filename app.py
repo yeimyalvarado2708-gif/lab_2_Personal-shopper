@@ -8,8 +8,9 @@ T-26: reproductor de audio sin reproducción automática (RF-09, D-03), aviso
 cuando no hay audio (RF-19, D-18) y botón de WhatsApp (D-15, RF-25).
 T-27: pestaña **Estimar** (RF-13 a RF-16, D-16): tarjetas de rango, monto,
 zona, primera compra y desglose con la leyenda, recalculado sin botón.
-La pestaña Historial, el banner de demo y el diseño final de los errores se
-agregan en T-28 y T-29.
+T-28: pestaña **Historial** (RF-17, RNF-15): todas las consultas de la
+sesión, solo en memoria, de la más nueva a la más vieja.
+El banner de demo y el diseño final de los errores se agregan en T-29.
 
 Decisiones de Yeimy (2026-11-25, T-25):
 - Trato de "usted" en toda la app, también en el saludo.
@@ -30,6 +31,8 @@ Decisiones de Yeimy (2026-11-25, T-27):
 - El monto se recalcula al presionar Enter o salir del campo; la zona y la
   casilla, al instante.
 
+Decisiones de Yeimy (2026-11-25, T-28): ver ``src/historial.py``.
+
 RF-31: mientras se procesa una pregunta, el botón Enviar, el campo y las
 preguntas rápidas quedan desactivados. El clic solo guarda la pregunta en
 ``pendiente`` (callback); la siguiente ejecución dibuja los controles ya
@@ -42,7 +45,7 @@ import logging
 
 import streamlit as st
 
-from src import demo, estilos
+from src import demo, estilos, historial
 from src.asistente import responder
 from src.base_conocimiento import cargar_base
 from src.calculadora import (
@@ -74,6 +77,7 @@ def iniciar_estado() -> None:
     st.session_state.setdefault("pendiente", None)     # pregunta por procesar
     st.session_state.setdefault("ultima", None)        # última pregunta y su resultado
     st.session_state.setdefault("aviso_pregunta", None)  # error de validación
+    st.session_state.setdefault("historial", [])       # RF-17: solo en memoria (RNF-15)
 
 
 def pedir(pregunta: str) -> None:
@@ -87,6 +91,11 @@ def enviar_escrita() -> None:
     pedir(st.session_state.get("campo_pregunta", ""))
 
 
+def guardar_en_historial(pregunta: str, resultado: dict | None) -> None:
+    st.session_state.historial = historial.agregar(
+        st.session_state.historial, historial.entrada(pregunta, resultado))
+
+
 def procesar(base: dict, config) -> None:
     """Responde la pregunta pendiente (spec 4.2) y desbloquea los controles."""
     pregunta = st.session_state.pendiente or ""
@@ -94,11 +103,13 @@ def procesar(base: dict, config) -> None:
         with st.spinner("Buscando la respuesta…"):
             resultado = responder(pregunta, base, config)
         st.session_state.ultima = {"pregunta": pregunta.strip(), "resultado": resultado, "error": None}
+        guardar_en_historial(pregunta, resultado)
     except ErrorValidacion as error:
         st.session_state.aviso_pregunta = str(error)  # no se llamó a ninguna API
     except ErrorAsistente as error:
         logger.warning("No se pudo responder: %s", error.detalle_tecnico or type(error).__name__)
         st.session_state.ultima = {"pregunta": pregunta.strip(), "resultado": None, "error": str(error)}
+        guardar_en_historial(pregunta, None)  # sección 7: "sin respuesta"
     finally:
         st.session_state.pendiente = None
         st.session_state.procesando = False
@@ -182,6 +193,18 @@ def pestana_estimar(base: dict) -> None:
     tarjetas.html(estilos.tarjetas_de_rango(tarifas, porcentaje))
 
 
+def pestana_historial() -> None:
+    """Todas las consultas de la sesión, de la más nueva a la más vieja (RF-17)."""
+    consultas = st.session_state.historial
+    if not consultas:
+        st.html(estilos.historial_vacio())
+    for consulta in consultas:
+        st.html(estilos.consulta_historial(consulta))
+        if consulta["audio"]:
+            st.audio(consulta["audio"], format="audio/mpeg", autoplay=False)  # desde la memoria
+    st.html(estilos.nota_historial())
+
+
 def main() -> None:
     st.set_page_config(page_title="Tu Personal Shopper", page_icon="🛒", layout="centered")
     iniciar_estado()
@@ -202,15 +225,17 @@ def main() -> None:
     fechas = proxima_fecha_compra(hoy, base["calendario_compras"])
     st.html(estilos.tarjeta_proxima_compra(fechas, hoy, MENSAJE_SIN_FECHA))
 
-    preguntar, estimar, historial = st.tabs(
-        [":material/chat: Preguntar", ":material/calculate: Estimar", ":material/history: Historial"]
+    total = len(st.session_state.historial)
+    preguntar, estimar, pestana_hist = st.tabs(
+        [":material/chat: Preguntar", ":material/calculate: Estimar",
+         f":material/history: Historial ({total})"]  # D-13: cuántas consultas hay
     )
     with preguntar:
         pestana_preguntar(base, config)
     with estimar:
         pestana_estimar(base)
-    with historial:
-        st.html(estilos.proximamente())  # T-28
+    with pestana_hist:
+        pestana_historial()
 
     st.html(estilos.pie(demo.telefono_whatsapp(base)))
 

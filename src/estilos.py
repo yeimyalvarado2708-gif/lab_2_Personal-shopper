@@ -102,6 +102,10 @@ html, body, [class*="st-"], button, input, textarea {{
   overflow: hidden;
   padding: 0 14px;
   margin: 1.2rem auto;
+  /* Que crezca con su contenido: si Streamlit la encoge al alto de la ventana,
+     overflow: hidden corta lo que no cabe y no se puede bajar (ajuste de T-28). */
+  flex-shrink: 0;
+  height: auto;
 }}
 .ps-script {{ font-family: 'Kalam', cursive; font-weight: 700; }}
 
@@ -198,6 +202,15 @@ html, body, [class*="st-"], button, input, textarea {{
 .ps-total .ps-total-monto {{ font-size: 28px; font-weight: 700; }}
 .ps-cortesia {{ margin: 4px 0 0; font-size: 13px; color: {VERDE}; font-weight: 500; }}
 .ps-leyenda {{ margin: 6px 0 0; font-size: 12px; color: {GRIS}; line-height: 1.4; }}
+
+/* Pestaña Historial (T-28) */
+.ps-historial-vacio {{ font-size: 15px; color: {GRIS}; text-align: center; margin: 6px 0; }}
+.ps-consulta {{ border-bottom: 1px dashed #C9D6EA; padding: 6px 0 2px; }}
+.ps-consulta .ps-meta {{ display: flex; justify-content: space-between; font-size: 12px; color: {GRIS}; }}
+.ps-consulta .ps-consulta-pregunta {{ margin: 0; font-size: 15px; font-weight: 700; color: {AZUL}; overflow-wrap: anywhere; }}
+.ps-consulta .ps-consulta-respuesta {{ margin: 0; font-size: 14px; color: {TEXTO}; overflow-wrap: anywhere; }}
+.ps-consulta .ps-consulta-audio {{ margin: 2px 0 0; font-size: 12px; color: {GRIS}; }}
+.ps-historial-nota {{ margin: 6px 0 0; font-size: 12px; color: {GRIS}; }}
 
 .ps-pronto {{ font-size: 15px; color: {GRIS}; text-align: center; margin: 6px 0; }}
 </style>
@@ -377,4 +390,31 @@ def desglose(cuenta: dict) -> str:
         f"{cortesia}</div>"
         f'<p class="ps-leyenda">{_e(LEYENDA_ESTIMADO)}</p>'
     )
+
+
+# ---------- pestaña Historial (T-28) ----------
+
+HISTORIAL_VACIO = "Sus preguntas de esta sesión aparecerán aquí."  # prototipo
+NOTA_HISTORIAL = "Se borra al cerrar o recargar la página."  # prototipo y RNF-15
+
+
+def historial_vacio() -> str:
+    return f'<p class="ps-historial-vacio">{_e(HISTORIAL_VACIO)}</p>'
+
+
+def consulta_historial(entrada: dict) -> str:
+    """Una consulta del historial (RF-17): hora, categoría y fuente; pregunta; respuesta; audio."""
+    detalle = " · ".join(filter(None, [entrada["categoria"], ", ".join(entrada["fuentes"])]))
+    return (
+        '<div class="ps-consulta">'
+        f'<div class="ps-meta"><span>{_e(entrada["hora"])}</span><span>{_e(detalle)}</span></div>'
+        f'<p class="ps-consulta-pregunta">{_e(entrada["pregunta"])}</p>'
+        f'<p class="ps-consulta-respuesta">{_e(entrada["respuesta"])}</p>'
+        f'<p class="ps-consulta-audio">{_e(entrada["estado_audio"])}</p>'
+        "</div>"
+    )
+
+
+def nota_historial() -> str:
+    return f'<p class="ps-historial-nota">{_e(NOTA_HISTORIAL)}</p>'
 
