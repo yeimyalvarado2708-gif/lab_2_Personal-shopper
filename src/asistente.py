@@ -171,9 +171,21 @@ def texto_aclaracion(base: dict) -> str:
     return f"Para lo demás, escríbanos por WhatsApp al {demo.telefono_whatsapp(base)}."
 
 
-def _sin_informacion(base: dict, controles: list[str]) -> dict:
+def mensaje_producto(base: dict) -> str:
+    """Mensaje fijo para precios o marcas de productos (RF-21, ciclo C-06).
+
+    Texto aprobado por Yeimy; el número sale de ``negocio.contacto_humano``.
+    """
+    return (
+        "No tenemos marcas ni precios de productos de PriceSmart. Puede revisarlos en la "
+        f"página oficial de PriceSmart o escribirme por WhatsApp al {demo.telefono_whatsapp(base)} "
+        "y con gusto le ayudo con la búsqueda."
+    )
+
+
+def _sin_informacion(base: dict, controles: list[str], producto: bool = False) -> dict:
     return {
-        "respuesta": demo.mensaje_sin_informacion(base),
+        "respuesta": mensaje_producto(base) if producto else demo.mensaje_sin_informacion(base),
         "fuentes": [],
         "categoria": demo.CATEGORIA_SIN_INFORMACION,
         "informacion_suficiente": False,
@@ -216,7 +228,10 @@ def aplicar_controles(
             fuentes.append(fuente)
 
     # b. RF-21 (y RF-07): sin información → solo el mensaje fijo.
-    if not resultado["informacion_suficiente"]:
+    if not resultado["informacion_suficiente"] and resultado.get("consulta_producto"):
+        controles.append("RF-21: precio o marca de un producto; se usa el mensaje fijo de productos (C-06)")
+        final = _sin_informacion(base, controles, producto=True)
+    elif not resultado["informacion_suficiente"]:
         controles.append("RF-21: información insuficiente; se usa el mensaje fijo")
         final = _sin_informacion(base, controles)
     elif not fuentes:

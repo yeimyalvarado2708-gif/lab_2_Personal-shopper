@@ -11,6 +11,12 @@ Uso (desde la carpeta del proyecto, con el entorno activado):
 
     python tests/evaluar.py           # Gemini real: ~33 solicitudes, ~5 minutos
     python tests/evaluar.py --demo    # ensayo sin APIs ni archivos (modo demo)
+    python tests/evaluar.py --casos EV-24   # reevaluar solo esos casos (R-05, ciclo C-06)
+
+Con ``--casos`` se guarda aparte, en ``evidencias/reevaluacion_AAAA-MM-DD_EV-24.*``:
+la evaluación original de T-33 no se toca. Los mínimos de la sección 11 se
+miden sobre el conjunto completo, así que una reevaluación parcial no dice
+"cumple" ni "no cumple" por grupo.
 
 Cómo se evalúa cada caso (regla del propio conjunto, ``como_se_evalua``):
 1. Las fuentes mostradas incluyen las ``fuentes_esperadas``.
@@ -118,8 +124,12 @@ def umbrales(metadatos: dict) -> dict[str, int]:
     }
 
 
-def resumen(resultados: list[dict], metadatos: dict) -> dict:
-    """Aprobados por tipo y por HU-01, contra los umbrales de la sección 11."""
+def resumen(resultados: list[dict], metadatos: dict, parcial: bool = False) -> dict:
+    """Aprobados por tipo y por HU-01, contra los umbrales de la sección 11.
+
+    Si ``parcial`` (reevaluación con ``--casos``), los mínimos no se aplican:
+    ``minimo`` y ``cumple`` quedan en ``None``.
+    """
     minimos = umbrales(metadatos)
     grupos = {tipo: [r for r in resultados if r["tipo"] == tipo] for tipo in TIPOS}
     grupos["hu01"] = [r for r in resultados if r["hu01"]]
@@ -129,8 +139,8 @@ def resumen(resultados: list[dict], metadatos: dict) -> dict:
         salida[nombre] = {
             "aprobados": aprobados,
             "total": len(casos),
-            "minimo": minimos[nombre],
-            "cumple": aprobados >= minimos[nombre],
+            "minimo": None if parcial else minimos[nombre],
+            "cumple": None if parcial else aprobados >= minimos[nombre],
         }
     salida["errores"] = [r["id"] for r in resultados if r["error"]]
     salida["respuestas_de_mas_de_400"] = [
@@ -199,12 +209,25 @@ def _celda(texto: object) -> str:
     return str(texto).replace("|", "\\|").replace("\n", " ")
 
 
+def _marca_minimo(g: dict) -> str:
+    """Las dos últimas columnas del resumen: mínimo y si cumple ("—" si no aplica)."""
+    if g["cumple"] is None:
+        return "— | no aplica"
+    return f"{g['minimo']} | {'✅' if g['cumple'] else '❌'}"
+
+
 def reporte_md(datos: dict) -> str:
     """Reporte para la revisión humana (decisión de Yeimy)."""
     m, r = datos["metadatos"], datos["resumen"]
-    lineas = [
-        f"# Evaluación del asistente · {m['fecha']}",
-        "",
+    parcial = bool(m.get("casos_evaluados"))
+    titulo = (f"# Reevaluación de {', '.join(m['casos_evaluados'])} · {m['fecha']}" if parcial
+              else f"# Evaluación del asistente · {m['fecha']}")
+    lineas = [titulo, ""]
+    if parcial:
+        lineas += [f"Reevaluación parcial ({m['motivo']}). La evaluación original "
+                   f"`{m['reevaluacion_de']}` no se modificó. Los mínimos de la sección 11 se miden "
+                   "sobre el conjunto completo y no se aplican aquí.", ""]
+    lineas += [
         f"Modelo `{m['modelo']}` · temperatura {m['temperatura']} · conjunto v{m['version_conjunto']} · "
         f"base v{m['version_base']} · respuesta evaluada: final, con controles · sin audio.",
         "",
@@ -215,8 +238,9 @@ def reporte_md(datos: dict) -> str:
     ]
     for grupo in (*TIPOS, "hu01"):
         g = r[grupo]
-        lineas.append(f"| {grupo} | {g['aprobados']} de {g['total']} | {g['minimo']} | "
-                      f"{'✅' if g['cumple'] else '❌'} |")
+        if g["total"] == 0:
+            continue  # grupo sin casos en una reevaluación parcial
+        lineas.append(f"| {grupo} | {g['aprobados']} de {g['total']} | {_marca_minimo(g)} |")
     lineas += ["", f"Errores: {', '.join(r['errores']) or 'ninguno'} · "
                f"Respuestas de más de 400 caracteres: {', '.join(r['respuestas_de_mas_de_400']) or 'ninguna'}",
                "", "## Revisión humana (comprobación 4)", "",
@@ -257,40 +281,79 @@ def reporte_md(datos: dict) -> str:
     return "\n".join(lineas) + "\n"
 
 
-def rutas(fecha: str, carpeta: Path) -> tuple[Path, Path]:
-    """Las rutas del .json y el .md de la evaluación de ``fecha`` (AAAA-MM-DD)."""
-    base = carpeta / f"evaluacion_{fecha}"
+def rutas(fecha: str, carpeta: Path, casos: list[str] | None = None) -> tuple[Path, Path]:
+    """Las rutas del .json y el .md de la evaluación de ``fecha`` (AAAA-MM-DD).
+
+    Con ``casos`` (reevaluación): ``reevaluacion_AAAA-MM-DD_EV-24.*``.
+    """
+    nombre = f"reevaluacion_{fecha}_{'_'.join(casos)}" if casos else f"evaluacion_{fecha}"
+    base = carpeta / nombre
     return base.with_suffix(".json"), base.with_suffix(".md")
 
 
-def existentes(fecha: str, carpeta: Path) -> list[Path]:
-    """Los archivos de la evaluación de ``fecha`` que ya existen."""
-    return [ruta for ruta in rutas(fecha, carpeta) if ruta.exists()]
+def existentes(fecha: str, carpeta: Path, casos: list[str] | None = None) -> list[Path]:
+    """Los archivos de esa evaluación (o reevaluación) que ya existen."""
+    return [ruta for ruta in rutas(fecha, carpeta, casos) if ruta.exists()]
+
+
+def evaluacion_original(carpeta: Path) -> str:
+    """El nombre de la evaluación completa más reciente (``evaluacion_AAAA-MM-DD``), o "—"."""
+    previas = sorted(carpeta.glob("evaluacion_*.json"))
+    return previas[-1].stem if previas else "—"
+
+
+def elegir_casos(todos: list[dict], ids: list[str] | None) -> list[dict]:
+    """Los casos pedidos con ``--casos``, en el orden del conjunto; error si alguno no existe."""
+    if not ids:
+        return todos
+    conocidos = {c["id"] for c in todos}
+    desconocidos = [i for i in ids if i not in conocidos]
+    if desconocidos:
+        raise ValueError(f"Casos que no están en el conjunto: {', '.join(desconocidos)}")
+    return [c for c in todos if c["id"] in ids]
 
 
 def guardar(datos: dict, carpeta: Path) -> tuple[Path, Path]:
     carpeta.mkdir(parents=True, exist_ok=True)
-    ruta_json, ruta_md = rutas(datos["metadatos"]["fecha"], carpeta)
-    for ruta in existentes(datos["metadatos"]["fecha"], carpeta):
+    m = datos["metadatos"]
+    casos = m.get("casos_evaluados")
+    ruta_json, ruta_md = rutas(m["fecha"], carpeta, casos)
+    for ruta in existentes(m["fecha"], carpeta, casos):
         raise FileExistsError(f"{ruta.name} ya existe: la evaluación se corre una sola vez.")
     ruta_json.write_text(json.dumps(datos, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     ruta_md.write_text(reporte_md(datos), encoding="utf-8")
     return ruta_json, ruta_md
 
 
+def _mostrar(ruta: Path) -> Path:
+    """La ruta relativa al proyecto si está dentro de él; si no, completa."""
+    return ruta.relative_to(RAIZ) if ruta.is_relative_to(RAIZ) else ruta
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Evaluación del asistente (T-33).")
     parser.add_argument("--demo", action="store_true",
                         help="ensayo con el modo demo: sin APIs y sin guardar archivos")
+    parser.add_argument("--casos", nargs="+", metavar="ID",
+                        help="reevaluar solo estos casos (por ejemplo EV-24); se guarda aparte")
     args = parser.parse_args(argv)
+    ids = sorted(set(args.casos), key=lambda i: (len(i), i)) if args.casos else None
+
+    conjunto = json.loads(CONJUNTO.read_text(encoding="utf-8"))
+    try:
+        casos = elegir_casos(conjunto["casos"], ids)
+    except ValueError as error:
+        print(f"{error}. No se llamó a Gemini.")
+        return 2
 
     hoy = hoy_costa_rica()
     if not args.demo:
         # Antes de cualquier solicitud a Gemini: si la evaluación de hoy ya existe,
         # se detiene sin gastar cuota (antes solo se revisaba al guardar, al final).
-        ya = existentes(hoy.isoformat(), CARPETA_EVIDENCIAS)
+        ya = existentes(hoy.isoformat(), CARPETA_EVIDENCIAS, ids)
         if ya:
-            print(f"La evaluación de hoy ya existe ({', '.join(r.name for r in ya)}): "
+            que = "La reevaluación" if ids else "La evaluación"
+            print(f"{que} de hoy ya existe ({', '.join(r.name for r in ya)}): "
                   "se corre una sola vez. No se llamó a Gemini.\n"
                   "Para un ensayo sin APIs use: python tests/evaluar.py --demo")
             return 1
@@ -300,15 +363,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.demo:
         config.verificar_gemini()
     base = cargar_base()
-    conjunto = json.loads(CONJUNTO.read_text(encoding="utf-8"))
 
-    print(f"Evaluando {len(conjunto['casos'])} casos "
+    print(f"Evaluando {len(casos)} casos "
           f"{'en modo demo (sin APIs)' if args.demo else 'con Gemini real (sin audio)'}…\n")
     if args.demo:
-        resultados = ejecutar(conjunto["casos"], base, config, hoy)
+        resultados = ejecutar(casos, base, config, hoy)
     else:
         with gemini_client.crear_cliente(config) as cliente:  # un cliente para todo (C-01)
-            resultados = ejecutar(conjunto["casos"], base, config, hoy, cliente)
+            resultados = ejecutar(casos, base, config, hoy, cliente)
 
     datos = {
         "metadatos": {
@@ -318,19 +380,28 @@ def main(argv: list[str] | None = None) -> int:
             "version_base": base["metadatos"]["version"],
             "regla_numeros": "un término que empieza con dígito no puede ir pegado a otro dígito antes (\"5%\" no está en \"15%\")",
         },
-        "resumen": resumen(resultados, conjunto["metadatos"]),
+        "resumen": resumen(resultados, conjunto["metadatos"], parcial=bool(ids)),
         "casos": resultados,
     }
+    if ids:
+        datos["metadatos"].update({
+            "casos_evaluados": ids,
+            "reevaluacion_de": evaluacion_original(CARPETA_EVIDENCIAS),
+            "motivo": "plan alternativo de R-05: casos que fallaron, después del ciclo C-06",
+        })
     print("\nResumen (comprobaciones automáticas):")
     for grupo in (*TIPOS, "hu01"):
         g = datos["resumen"][grupo]
-        print(f"  {grupo:13s} {g['aprobados']:2d} de {g['total']:2d} (mínimo {g['minimo']}) "
-              f"{'✅' if g['cumple'] else '❌'}")
+        if g["total"] == 0:
+            continue
+        minimo = ("(mínimo: no aplica en una reevaluación parcial)" if g["cumple"] is None
+                  else f"(mínimo {g['minimo']}) {'✅' if g['cumple'] else '❌'}")
+        print(f"  {grupo:13s} {g['aprobados']:2d} de {g['total']:2d} {minimo}")
     if args.demo:
         print("\nModo demo: no se guardan archivos.")
         return 0
     ruta_json, ruta_md = guardar(datos, CARPETA_EVIDENCIAS)
-    print(f"\nGuardado: {ruta_json.relative_to(RAIZ)} y {ruta_md.relative_to(RAIZ)}")
+    print(f"\nGuardado: {_mostrar(ruta_json)} y {_mostrar(ruta_md)}")
     print("Falta la revisión humana: abra el .md y marque cada caso.")
     return 0
 

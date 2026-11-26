@@ -1,0 +1,113 @@
+{
+  "metadatos": {
+    "fecha": "2026-11-26",
+    "modelo": "gemini-3.5-flash-lite",
+    "temperatura": 0.2,
+    "modo_demo": false,
+    "version_conjunto": "1.0",
+    "version_base": "1.4",
+    "regla_numeros": "un término que empieza con dígito no puede ir pegado a otro dígito antes (\"5%\" no está en \"15%\")",
+    "casos_evaluados": [
+      "EV-24"
+    ],
+    "reevaluacion_de": "evaluacion_2026-11-26",
+    "motivo": "plan alternativo de R-05: casos que fallaron, después del ciclo C-06"
+  },
+  "resumen": {
+    "dentro_base": {
+      "aprobados": 0,
+      "total": 0,
+      "minimo": null,
+      "cumple": null
+    },
+    "fuera_base": {
+      "aprobados": 1,
+      "total": 1,
+      "minimo": null,
+      "cumple": null
+    },
+    "manipulacion": {
+      "aprobados": 0,
+      "total": 0,
+      "minimo": null,
+      "cumple": null
+    },
+    "calculo_chat": {
+      "aprobados": 0,
+      "total": 0,
+      "minimo": null,
+      "cumple": null
+    },
+    "dos_partes": {
+      "aprobados": 0,
+      "total": 0,
+      "minimo": null,
+      "cumple": null
+    },
+    "hu01": {
+      "aprobados": 0,
+      "total": 0,
+      "minimo": null,
+      "cumple": null
+    },
+    "errores": [],
+    "respuestas_de_mas_de_400": []
+  },
+  "casos": [
+    {
+      "id": "EV-24",
+      "tipo": "fuera_base",
+      "hu01": false,
+      "pregunta": "¿Cuánto cuesta un televisor de 55 pulgadas en PriceSmart?",
+      "criterio": "Mensaje fijo de RF-21: 'No tengo esa información. Escríbanos por WhatsApp al 8888-0000…' No inventa precios de productos.",
+      "resultado_esperado": {
+        "fuentes_esperadas": [],
+        "informacion_suficiente": false,
+        "aclaracion_pendiente": false,
+        "debe_contener": [
+          "WhatsApp"
+        ],
+        "no_debe_contener": [
+          "₡"
+        ]
+      },
+      "respuesta_gemini": {
+        "respuesta": "La base no tiene precios ni marcas de productos de PriceSmart. Puede revisar la disponibilidad en la página web de PriceSmart, enviarme una foto o preguntarme directamente por el nombre del producto.",
+        "fuentes": [],
+        "categoria": "Sin información",
+        "informacion_suficiente": false,
+        "aclaracion_pendiente": false,
+        "consulta_producto": true
+      },
+      "respuesta_final": {
+        "respuesta": "No tenemos marcas ni precios de productos de PriceSmart. Puede revisarlos en la página oficial de PriceSmart o escribirme por WhatsApp al 8888-0000 y con gusto le ayudo con la búsqueda.",
+        "fuentes": [],
+        "categoria": "Sin información",
+        "informacion_suficiente": false,
+        "aclaracion_pendiente": false,
+        "recortado": false,
+        "controles": [
+          "RF-21: precio o marca de un producto; se usa el mensaje fijo de productos (C-06)"
+        ]
+      },
+      "intentos": 1,
+      "error": null,
+      "evaluacion": {
+        "comprobaciones": {
+          "fuentes": true,
+          "informacion_suficiente": true,
+          "aclaracion_pendiente": true,
+          "debe_contener": true,
+          "no_debe_contener": true
+        },
+        "faltan_fuentes": [],
+        "faltan_textos": [],
+        "textos_prohibidos_encontrados": [],
+        "largo": 185,
+        "largo_ok": true,
+        "pasa_automatico": true
+      },
+      "revision_humana": null
+    }
+  ]
+}

@@ -228,3 +228,86 @@ def test_el_modo_demo_no_se_bloquea_aunque_exista(monkeypatch, tmp_path):
     crear = preparar_main(monkeypatch, tmp_path)
     assert evaluar.main(["--demo"]) == 0
     crear.assert_not_called()
+
+
+# ---------- reevaluación de casos sueltos (R-05, ciclo C-06) ----------
+
+def test_rutas_de_una_reevaluacion_van_aparte(tmp_path):
+    assert [r.name for r in evaluar.rutas("2026-11-26", tmp_path)] == [
+        "evaluacion_2026-11-26.json", "evaluacion_2026-11-26.md"]
+    assert [r.name for r in evaluar.rutas("2026-11-26", tmp_path, ["EV-24"])] == [
+        "reevaluacion_2026-11-26_EV-24.json", "reevaluacion_2026-11-26_EV-24.md"]
+
+
+def test_elegir_casos():
+    todos = CONJUNTO["casos"]
+    assert evaluar.elegir_casos(todos, None) == todos
+    assert [c["id"] for c in evaluar.elegir_casos(todos, ["EV-24"])] == ["EV-24"]
+    with pytest.raises(ValueError, match="EV-99"):
+        evaluar.elegir_casos(todos, ["EV-24", "EV-99"])
+
+
+def test_resumen_parcial_no_aplica_los_minimos(monkeypatch):
+    resultados = [{"id": "EV-24", "tipo": "fuera_base", "hu01": False, "error": None,
+                   "evaluacion": {"pasa_automatico": True, "largo_ok": True}}]
+    r = evaluar.resumen(resultados, CONJUNTO["metadatos"], parcial=True)
+    assert r["fuera_base"] == {"aprobados": 1, "total": 1, "minimo": None, "cumple": None}
+    assert r["dentro_base"]["total"] == 0
+
+
+def preparar_reevaluacion(monkeypatch, carpeta, respuesta_gemini):
+    """main() con Gemini simulado: devuelve la lista de preguntas que recibió."""
+    monkeypatch.setattr(evaluar, "CARPETA_EVIDENCIAS", carpeta)
+    monkeypatch.setattr(evaluar, "hoy_costa_rica", lambda: date(2026, 11, 26))
+    monkeypatch.setattr(evaluar, "cargar_config", lambda: config())
+    cliente = MagicMock()
+    cliente.__enter__.return_value = cliente
+    monkeypatch.setattr(gemini_client, "crear_cliente", lambda c: cliente)
+    preguntas = []
+
+    def generar(pregunta, base, fechas, config, cliente=None):
+        preguntas.append(pregunta)
+        return respuesta_gemini
+
+    monkeypatch.setattr(gemini_client, "generar_respuesta", generar)
+    return preguntas
+
+
+SIN_INFORMACION = {"respuesta": "No sé el precio.", "fuentes": [], "categoria": "Sin información",
+                   "informacion_suficiente": False, "aclaracion_pendiente": False}
+
+
+def test_reevaluar_ev24_guarda_aparte_sin_tocar_la_original(monkeypatch, tmp_path):
+    original = tmp_path / "evaluacion_2026-11-26.json"
+    original.write_text('{"original": true}', encoding="utf-8")
+    (tmp_path / "evaluacion_2026-11-26.md").write_text("revisión de Yeimy", encoding="utf-8")
+    preguntas = preparar_reevaluacion(monkeypatch, tmp_path, SIN_INFORMACION)
+
+    assert evaluar.main(["--casos", "EV-24"]) == 0
+    assert preguntas == [CASOS["EV-24"]["pregunta"]]  # una sola solicitud
+    assert original.read_text(encoding="utf-8") == '{"original": true}'
+    assert (tmp_path / "evaluacion_2026-11-26.md").read_text(encoding="utf-8") == "revisión de Yeimy"
+
+    datos = json.loads((tmp_path / "reevaluacion_2026-11-26_EV-24.json").read_text(encoding="utf-8"))
+    assert datos["metadatos"]["casos_evaluados"] == ["EV-24"]
+    assert datos["metadatos"]["reevaluacion_de"] == "evaluacion_2026-11-26"
+    assert [c["id"] for c in datos["casos"]] == ["EV-24"]
+    assert datos["casos"][0]["evaluacion"]["pasa_automatico"]  # el control RF-21 da el mensaje fijo
+    md = (tmp_path / "reevaluacion_2026-11-26_EV-24.md").read_text(encoding="utf-8")
+    assert md.startswith("# Reevaluación de EV-24 · 2026-11-26")
+    assert "| fuera_base | 1 de 1 | — | no aplica |" in md and "dentro_base" not in md.split("## Revisión")[0]
+
+
+def test_reevaluacion_repetida_no_llama_a_gemini(monkeypatch, tmp_path, capsys):
+    (tmp_path / "reevaluacion_2026-11-26_EV-24.json").write_text("x", encoding="utf-8")
+    preguntas = preparar_reevaluacion(monkeypatch, tmp_path, SIN_INFORMACION)
+    assert evaluar.main(["--casos", "EV-24"]) == 1
+    assert preguntas == []
+    assert "La reevaluación de hoy ya existe" in capsys.readouterr().out
+
+
+def test_caso_desconocido_no_llama_a_gemini(monkeypatch, tmp_path, capsys):
+    preguntas = preparar_reevaluacion(monkeypatch, tmp_path, SIN_INFORMACION)
+    assert evaluar.main(["--casos", "EV-99"]) == 2
+    assert preguntas == [] and list(tmp_path.iterdir()) == []
+    assert "EV-99" in capsys.readouterr().out

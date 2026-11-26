@@ -475,3 +475,60 @@ def test_modo_demo_no_genera_audio_y_muestra_el_aviso(monkeypatch, tmp_path):
     assert final["aviso_audio"] == MENSAJE_AUDIO_DEMO == (
         "Modo demostración: el audio no está disponible.")
     assert not list(tmp_path.iterdir())
+
+
+# ---------- ciclo C-06: precios o marcas de productos ----------
+
+MENSAJE_PRODUCTO = (
+    "No tenemos marcas ni precios de productos de PriceSmart. Puede revisarlos en la "
+    "página oficial de PriceSmart o escribirme por WhatsApp al 8888-0000 y con gusto le "
+    "ayudo con la búsqueda."
+)
+
+
+def test_mensaje_producto_es_el_texto_aprobado_y_cumple_las_reglas():
+    mensaje = asistente.mensaje_producto(BASE)
+    assert mensaje == MENSAJE_PRODUCTO
+    assert len(mensaje) <= LIMITE                          # RF-10
+    assert "₡" not in mensaje                              # EV-24: sin precios
+    assert "WhatsApp" in mensaje                           # EV-24 y D-15
+    # El control de montos (RF-24) no tiene nada que bloquear en el mensaje.
+    assert asistente.numeros_no_permitidos(mensaje, BASE, "¿Cuánto cuesta un televisor?") == []
+
+
+def test_consulta_de_producto_da_su_mensaje_fijo_y_descarta_el_texto_de_gemini():
+    crudo = {**gemini("Un televisor cuesta ₡250.000.", fuentes=("FAQ-11",), categoria="Productos",
+                      suficiente=False), "consulta_producto": True}
+    final = controlar(crudo, "¿Cuánto cuesta un televisor de 55 pulgadas en PriceSmart?")
+    assert final["respuesta"] == MENSAJE_PRODUCTO
+    assert final["fuentes"] == [] and final["informacion_suficiente"] is False
+    assert final["aclaracion_pendiente"] is False
+    assert final["categoria"] == "Sin información"
+    assert final["controles"] == [
+        "RF-21: precio o marca de un producto; se usa el mensaje fijo de productos (C-06)"]
+
+
+def test_consulta_producto_sin_informacion_insuficiente_no_cambia_la_respuesta():
+    """Si Gemini dice que la base sí responde, consulta_producto no reemplaza nada (gana RF-21 normal)."""
+    crudo = {**gemini("Puede revisar la página web de PriceSmart.", fuentes=("FAQ-11",),
+                      categoria="Productos"), "consulta_producto": True}
+    final = controlar(crudo, "¿Cómo verifico si hay un producto?")
+    assert final["respuesta"] == "Puede revisar la página web de PriceSmart."
+    assert final["fuentes"] == ["FAQ-11"]
+
+
+@pytest.mark.parametrize("extra", [{}, {"consulta_producto": False}])
+def test_sin_informacion_comun_sigue_con_el_mensaje_de_rf21(extra):
+    final = controlar({**gemini("Inventado.", suficiente=False), **extra}, "¿Venden ropa?")
+    assert final["respuesta"] == MENSAJE_SIN_INFO
+
+
+def test_consulta_de_producto_no_genera_audio(monkeypatch, tmp_path):
+    """Igual que RF-21 (T-26): botón de WhatsApp y sin gastar créditos de audio."""
+    crudo = {**gemini("₡250.000", suficiente=False), "consulta_producto": True}
+    monkeypatch.setattr(gemini_client, "generar_respuesta", MagicMock(return_value=crudo))
+    cliente_voz = voz_falsa()
+    final = asistente.responder("¿Qué marcas de televisores tienen?", BASE, config_con_voz(),
+                                cliente_voz=cliente_voz, carpeta_cache=tmp_path)
+    assert final["respuesta"] == MENSAJE_PRODUCTO and final["audio"] is None
+    cliente_voz.text_to_speech.convert.assert_not_called()

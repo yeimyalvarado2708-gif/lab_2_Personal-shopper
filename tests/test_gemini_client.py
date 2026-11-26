@@ -43,6 +43,7 @@ RESPUESTA_GEMINI = {
     "categoria": "Pagos",
     "informacion_suficiente": True,
     "aclaracion_pendiente": False,
+    "consulta_producto": False,  # ciclo C-06: el esquema lo pide siempre
 }
 
 
@@ -73,10 +74,22 @@ def test_respuesta_exitosa_interpretada():
     assert resultado == RESPUESTA_GEMINI
 
 
-def test_solo_se_conservan_los_cinco_campos_del_contrato():
+def test_solo_se_conservan_los_campos_del_contrato():
     extra = {**RESPUESTA_GEMINI, "nota_del_modelo": "algo más"}
     resultado = gc.generar_respuesta("¿SINPE?", BASE, FECHAS, config_prueba(), cliente_falso(extra))
-    assert set(resultado) == set(gc.CAMPOS_RESPUESTA)
+    assert set(resultado) == {*gc.CAMPOS_RESPUESTA, gc.CAMPO_PRODUCTO}
+
+
+def test_consulta_producto_que_falta_se_toma_como_false():
+    """Ciclo C-06: el campo nuevo no es obligatorio al interpretar (JSON anterior sigue válido)."""
+    sin_campo = {k: v for k, v in RESPUESTA_GEMINI.items() if k != "consulta_producto"}
+    resultado = gc.interpretar_respuesta(json.dumps(sin_campo))
+    assert resultado["consulta_producto"] is False
+
+
+def test_consulta_producto_debe_ser_booleano():
+    with pytest.raises(ValueError, match="consulta_producto"):
+        gc.interpretar_respuesta(json.dumps({**RESPUESTA_GEMINI, "consulta_producto": "true"}))
 
 
 def test_respuesta_con_espacios_se_limpia():
@@ -116,7 +129,8 @@ def test_pide_respuesta_en_json_con_esquema():
     parametros = llamada(cliente)["config"]
     assert parametros.response_mime_type == "application/json"
     esquema = parametros.response_json_schema
-    assert set(esquema["required"]) == set(gc.CAMPOS_RESPUESTA)
+    assert set(esquema["required"]) == {*gc.CAMPOS_RESPUESTA, gc.CAMPO_PRODUCTO}
+    assert esquema["properties"]["consulta_producto"] == {"type": "boolean"}  # C-06
 
 
 def test_categorias_del_esquema_salen_de_la_base():
@@ -165,6 +179,20 @@ def test_instrucciones_tienen_las_reglas_clave():
     assert '"informacion_suficiente": false' in instrucciones  # RF-06
     assert '"aclaracion_pendiente": true' in instrucciones     # RF-25
     assert "400 caracteres" in instrucciones                   # D-04
+
+
+def test_precio_de_un_producto_es_informacion_insuficiente():
+    """Ciclo C-06 (EV-24): la base no tiene precios ni marcas; FAQ-11 no los responde."""
+    instrucciones = gc.armar_instrucciones(BASE, FECHAS, 400)
+    regla = " ".join(instrucciones.split("5. ", 1)[1].split("\n6. ", 1)[0].split())  # regla 5
+    assert "no tiene precios ni marcas de productos de PriceSmart" in regla
+    assert "cuánto cuesta un producto o qué marcas hay" in regla
+    assert '"informacion_suficiente": false y "consulta_producto": true' in regla
+    assert "aunque otra FAQ hable de productos" in regla
+    assert 'En cualquier otro caso, "consulta_producto": false' in regla
+    # La base sigue sin precios de productos: si algún día los tuviera, esta regla sobraría.
+    textos = " ".join(f["respuesta"] for f in BASE["preguntas"]).lower()
+    assert "televisor" not in textos and "pulgadas" not in textos
 
 
 def test_limite_de_caracteres_sale_de_la_configuracion():
