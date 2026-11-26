@@ -35,6 +35,9 @@ MENSAJE_SERVICIO_NO_DISPONIBLE = (
 )
 MENSAJE_SOLO_TEXTO ="Por ahora la respuesta está disponible solo en texto."
 MENSAJE_AUDIO_NO_DISPONIBLE = "El audio no está disponible en este momento."
+# Decisión de Yeimy (2026-11-25, T-23): aviso en lugar del reproductor en
+# modo demo (RF-20).
+MENSAJE_AUDIO_DEMO = "Modo demostración: el audio no está disponible."
 MENSAJE_CUOTA_AUDIO = (
     "Se agotaron los créditos de audio de este mes. "
     "La respuesta se muestra solo en texto."

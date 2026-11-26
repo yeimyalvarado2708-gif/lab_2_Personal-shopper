@@ -16,7 +16,9 @@ Requisitos: RF-06, RF-07, RF-10, RF-21, RF-24, RF-25 (spec 4.2, pasos 2 a 7).
    d. RF-25: ``aclaracion_pendiente`` → se agrega el texto fijo de WhatsApp.
    e. RF-10: la respuesta completa tiene máximo 400 caracteres.
 
-El audio (voz.py) se agrega en T-23.
+5. Genera el audio con ``voz.sintetizar()`` (T-23). Si falla, el texto se
+   entrega igual con un aviso (RF-19). En modo demo no se genera audio y se
+   entrega el aviso de demo (RF-20).
 
 Decisiones de Yeimy (2026-11-25, T-19):
 
@@ -35,9 +37,11 @@ import logging
 import re
 from datetime import date
 
-from src import demo, gemini_client
+from src import demo, gemini_client, voz
 from src.calculadora import formatear_colones, hoy_costa_rica, proxima_fecha_compra
 from src.config import Config, cargar_config
+from src.errores import MENSAJE_AUDIO_DEMO, MENSAJE_AUDIO_NO_DISPONIBLE, ErrorAsistente
+from src.texto import recortar
 from src.validacion import validar_pregunta
 
 logger = logging.getLogger("personal_shopper")
@@ -51,8 +55,6 @@ PLANTILLA_CALCULADORA = (
     "Para calcular su cuenta, use la calculadora de estimado en esta misma página."
 )
 
-PUNTOS_SUSPENSIVOS = "…"
-
 # Montos en colones: "₡2.000", "₡2000", "₡30.000,50", "2.000 colones".
 # Separador de miles: punto o espacio fino (no el espacio común, para no unir
 # "₡2.000 100" en un solo número).
@@ -63,7 +65,6 @@ _MONTO_EN_MILES = re.compile(r"\b\d+\s*mil\b", re.IGNORECASE)  # "30 mil"
 _PORCENTAJE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(?:%|por\s*ciento\b)", re.IGNORECASE)
 
 # RF-10: fin de oración = . ! ? o … seguido de espacio o del final del texto.
-_FIN_DE_ORACION = re.compile(r"[.!?…]")
 
 
 # ---------- números en el texto (RF-24) ----------
@@ -139,36 +140,6 @@ def numeros_no_permitidos(respuesta: str, base: dict, pregunta: str) -> list[str
 
 
 # ---------- recorte (RF-10) ----------
-
-def recortar(texto: str, limite: int) -> tuple[str, bool]:
-    """Recorta ``texto`` a ``limite`` caracteres en la última oración completa.
-
-    Si no termina ninguna oración dentro del límite, corta en la última
-    palabra completa y agrega "…" (decisión de Yeimy). Devuelve el texto y si
-    se recortó.
-    """
-    texto = texto.strip()
-    if len(texto) <= limite:
-        return texto, False
-
-    # Un punto cuenta como fin de oración solo si en el texto COMPLETO le
-    # sigue un espacio o el final (así no se corta dentro de "₡15.000").
-    ultimo_fin = 0
-    for marca in _FIN_DE_ORACION.finditer(texto, 0, limite):
-        siguiente = texto[marca.end():marca.end() + 1]
-        if siguiente == "" or siguiente.isspace():
-            ultimo_fin = marca.end()
-    if ultimo_fin:
-        return texto[:ultimo_fin].rstrip(), True
-
-    espacio_para_texto = limite - len(PUNTOS_SUSPENSIVOS)
-    corte = texto[:espacio_para_texto]
-    if texto[espacio_para_texto:espacio_para_texto + 1].strip():  # cortó una palabra
-        ultimo_espacio = corte.rfind(" ")
-        if ultimo_espacio > 0:
-            corte = corte[:ultimo_espacio]
-    return corte.rstrip(" ,;:") + PUNTOS_SUSPENSIVOS, True
-
 
 # ---------- controles (RF-07, RF-21, RF-24, RF-25, RF-10) ----------
 
@@ -298,18 +269,24 @@ def responder(
     config: Config | None = None,
     hoy: date | None = None,
     cliente=None,
+    cliente_voz=None,
+    carpeta_cache=None,
 ) -> dict:
     """Responde una pregunta del chat, ya con los controles aplicados.
 
     - ``config``: si no se pasa, se lee del ``.env``.
     - ``hoy``: si no se pasa, se usa la fecha de hoy en Costa Rica (RF-28).
     - ``cliente``: un cliente de Gemini reutilizable (ver ``gemini_client``).
+    - ``cliente_voz`` y ``carpeta_cache``: para ``voz.sintetizar()`` (las
+      pruebas pasan un cliente falso y una carpeta temporal).
 
     Lanza ``ErrorValidacion`` si la pregunta no es válida, y los errores de
     ``gemini_client`` si Gemini falla (spec, sección 7).
 
-    Devuelve el formato de spec 5.5 más ``recortado``, ``controles`` y
-    ``modo_demo``.
+    Devuelve el formato de spec 5.5 más ``recortado``, ``controles``,
+    ``modo_demo`` y el audio: ``audio`` (bytes MP3 o ``None``),
+    ``audio_desde_cache`` y ``aviso_audio`` (texto para el cliente cuando no
+    hay audio, o ``None``). Un error de audio nunca impide entregar el texto.
     """
     pregunta = validar_pregunta(pregunta)
     config = config or cargar_config()
@@ -326,4 +303,21 @@ def responder(
         crudo, base, pregunta, config.limite_caracteres_respuesta, prefijo
     )
     resultado["modo_demo"] = config.modo_demo
+    resultado.update(_audio_de(resultado["respuesta"], config, cliente_voz, carpeta_cache))
     return resultado
+
+
+def _audio_de(texto: str, config: Config, cliente_voz, carpeta_cache) -> dict:
+    """Audio de la respuesta, o el aviso si no se puede generar (RF-19, RF-20)."""
+    sin_audio = {"audio": None, "audio_desde_cache": False}
+    if config.modo_demo:
+        return {**sin_audio, "aviso_audio": MENSAJE_AUDIO_DEMO}
+    try:
+        audio = voz.sintetizar(texto, config, cliente_voz, carpeta_cache)
+    except ErrorAsistente as error:
+        logger.warning("Audio no disponible: %s", error.detalle_tecnico or type(error).__name__)
+        return {**sin_audio, "aviso_audio": str(error)}
+    except Exception as error:  # RF-19: un fallo inesperado del audio no borra el texto
+        logger.warning("Audio no disponible por un error inesperado: %s", type(error).__name__)
+        return {**sin_audio, "aviso_audio": MENSAJE_AUDIO_NO_DISPONIBLE}
+    return {"audio": audio["audio"], "audio_desde_cache": audio["desde_cache"], "aviso_audio": None}

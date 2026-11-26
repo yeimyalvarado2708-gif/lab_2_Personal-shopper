@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.5 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25)
+**Versión:** 1.7 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25 · 1.6: RF-20, 5.6 y sección 7 precisados en T-23 el 2026-11-25 · 1.7: diseño de la interfaz, D-12 a D-18, 2026-11-25)
 **Documento relacionado:** `intent.md` v1.0
 
 ---
@@ -25,6 +25,13 @@ Estas decisiones las tomó la autora antes de escribir la especificación. Todo 
 | D-09 | Los **mensajes de control** (información insuficiente, derivación a WhatsApp, aclaración de partes sin información) son **textos fijos del código**, no redactados por Gemini. | El modelo no puede "suavizar" un "no sé" con un dato inventado. |
 | D-10 | En una pregunta con varias partes, se **responde la parte que sí está en la base** y se agrega un texto fijo que remite a WhatsApp para lo demás. | El cliente recibe lo que sí se sabe, sin que se invente el resto. |
 | D-11 | La lista se recibe **todo el miércoles**, sin hora límite. | Confirmado por la dueña. |
+| D-12 | **Identidad visual** tomada del volante del emprendimiento: azul marino `#173C8F` (encabezado y pie), azul oscuro `#0B2463` (pestaña activa), fucsia `#D81B6A` (botones de acción), verde `#239B3E`, morado `#6A2C9E`, amarillo `#F9D423` y celeste `#EAF4FD` (fondos). Letra manuscrita **Kalam** para títulos y letra redondeada **Baloo 2** para el resto (Google Fonts). **No se usan el logo ni la tipografía de PriceSmart.** La referencia visual es `docs/prototipo_interfaz.html`. | Una imagen coherente con la publicidad del negocio. PriceSmart es una marca de otra empresa: la tienda se nombra en el texto, pero la app no debe parecer oficial de ella. |
+| D-13 | **Estructura de la pantalla:** una sola columna pensada para celular, con encabezado ("Tu Personal Shopper"), la tarjeta de próxima compra y tres pestañas con `st.tabs`: **Preguntar**, **Estimar** e **Historial**. La pestaña activa se muestra en azul oscuro con letra blanca; las inactivas, en blanco con letra gris. La pestaña Historial muestra cuántas consultas hay. Pie de página con "¡Yo te lo compro!" y el WhatsApp ficticio. | Una tarea por pantalla; en el celular, las columnas y la barra lateral se apilan o se esconden. |
+| D-14 | La **tarjeta de próxima compra** (amarilla) está siempre visible, con la fecha de compra y la fecha límite de `proxima_fecha_compra()`. Si hoy es la fecha límite, muestra el aviso **"¡Cierra hoy!"**. Si no hay fecha (RF-29), muestra el texto fijo de RF-29. | Es la consulta más frecuente; así se responde sin gastar cuota de Gemini y funciona sin conexión. |
+| D-15 | **Pestaña Preguntar:** saludo *"¿Necesitas información de nuestro servicio?"*; tres **preguntas rápidas** ("¿Cuánto cobran?", "¿Número de SINPE?", "¿Próxima compra?") que pasan por el mismo flujo que una pregunta escrita (validación, controles, cuota); la conversación se muestra en burbujas, y la respuesta lleva su fuente, su categoría y el reproductor de audio. Si no hay información suficiente, en lugar del audio se muestra un botón de WhatsApp. | El cliente nuevo encuentra las dudas comunes con un toque, y cada respuesta sigue siendo trazable. |
+| D-16 | **Pestaña Estimar:** tres tarjetas de rango (20%, 15%, 10%) con la del rango aplicado resaltada en su color, según `porcentaje_servicio` de `calcular_cuenta()`; la zona se elige en **un solo `st.selectbox`** construido desde `zonas_domicilio`, con el costo en el nombre ("La Trocha (+₡2.000)"); el estimado **se recalcula al cambiar un campo, sin botón Calcular** (reemplaza el paso 1 de 4.3). | La calculadora es local y no gasta cuota, así que puede responder en vivo. La lista única es más simple para el cliente y cumple RF-13. |
+| D-17 | **HTML y CSS solo para lo que se muestra** (`st.html`): encabezado, tarjetas, desglose y burbujas. Todo lo que el cliente usa (campo de pregunta, monto, zona, primera compra, botones) son **widgets de Streamlit**. Los colores base van en `.streamlit/config.toml` y el CSS en `src/estilos.py`. **Todo texto del cliente o de Gemini que se muestre en HTML pasa por `html.escape()`.** | Python recibe los valores de los widgets y no los de un botón HTML. Escapar el texto evita que una pregunta con código se ejecute en la página. |
+| D-18 | En **modo demostración**, el encabezado muestra la etiqueta amarilla **"DEMO"** y, debajo, una franja con el aviso *"Modo demostración: las respuestas son simuladas."* (RF-20). El aviso de audio de RF-20 (*"Modo demostración: el audio no está disponible."*) se muestra en la respuesta, en el lugar del reproductor. | El banner de RF-20 queda visible sin romper el diseño. |
 
 ---
 
@@ -77,7 +84,7 @@ Estas decisiones las tomó la autora antes de escribir la especificación. Todo 
 | **RF-17** | El sistema debe guardar durante la sesión el historial de interacciones (pregunta, respuesta, fuente, categoría, hora y estado del audio) y mostrar como mínimo las últimas cinco, de la más reciente a la más antigua. |
 | **RF-18** | El sistema debe mostrar mensajes de error amigables, en español y sin detalles técnicos, cuando Gemini o ElevenLabs fallen (ver la sección 7). |
 | **RF-19** | Si ElevenLabs falla, el sistema debe mostrar igual la respuesta en texto, con un aviso de que el audio no está disponible. |
-| **RF-20** | Con `MODO_DEMO=true`, el sistema no debe llamar a ninguna API. Debe responder con la FAQ que mejor coincida por palabras clave, marcando la respuesta como **[RESPUESTA SIMULADA]**, y sin generar audio (con un aviso). Un banner visible debe indicar que la app está en modo demostración. |
+| **RF-20** | Con `MODO_DEMO=true`, el sistema no debe llamar a ninguna API. Debe responder con la FAQ que mejor coincida por palabras clave, marcando la respuesta como **[RESPUESTA SIMULADA]**, y sin generar audio (con un aviso). Un banner visible debe indicar que la app está en modo demostración. **Aviso de audio (decisión de Yeimy en T-23, 2026-11-25):** *"Modo demostración: el audio no está disponible."* |
 | **RF-30** | En el modo demostración, la búsqueda por palabras clave debe **ignorar mayúsculas y tildes** ("SINPE" = "sinpe"; "envio" = "envío"). |
 | **RF-31** | Mientras se procesa una pregunta, el botón **Enviar** debe estar desactivado, para evitar envíos dobles que gasten cuota y créditos. |
 
@@ -154,7 +161,7 @@ Estas decisiones las tomó la autora antes de escribir la especificación. Todo 
 
 ### 4.3 Flujo de datos: calculadora
 
-1. El usuario llena el monto, la zona y la casilla de primera compra, y presiona **Calcular**.
+1. El usuario llena el monto, la zona y la casilla de primera compra. El estimado se recalcula cada vez que cambia un campo, sin botón **Calcular** (D-16).
 2. `validacion.validar_monto()` revisa el monto. Si no es válido, se muestra un mensaje.
 3. `calculadora.calcular_cuenta()` aplica RF-14 con las tarifas y zonas del JSON.
 4. Se muestra el desglose con la leyenda de estimado.
@@ -175,6 +182,7 @@ La calculadora **no llama a ninguna API**, así que funciona sin conexión.
 | `src/asistente.py` | Orquesta el flujo del chat y aplica los controles de RF-07, RF-21, RF-24 y RF-25. | `gemini_client`, `voz`, `demo`, `calculadora` |
 | `src/demo.py` | Respuestas simuladas por coincidencia de palabras clave, sin distinguir mayúsculas ni tildes. | `base_conocimiento` |
 | `src/errores.py` | Excepciones propias y sus mensajes amigables. | — |
+| `src/estilos.py` | CSS de la interfaz, carga de las letras y funciones que arman el HTML de lo que solo se muestra (encabezado, tarjetas, desglose, burbujas), con el texto escapado (D-12, D-17). | — |
 
 ### 4.5 Dependencias
 
@@ -301,6 +309,12 @@ Las versiones exactas se fijan en `requirements.txt` cuando se instalen por prim
 ```
 
 - La clave de la caché es el SHA-256 de `texto_final + voice_id + modelo` (el texto ya preparado para la voz), y el archivo se guarda como `cache_audio/<hash>.mp3`.
+- **Precisiones de T-23 (decisiones de Yeimy, 2026-11-25):**
+  - Sin reintentos automáticos del SDK (`max_retries=0`), igual que con Gemini (ciclo C-02), para no pasar de los 20 segundos de RNF-12.
+  - Formato `mp3_44100_128` (MP3 estándar). La calidad no cambia los créditos.
+  - Si el texto pasa de `LIMITE_CARACTERES_RESPUESTA`, se recorta con la regla de RF-10 antes de preparar la voz y se devuelve `recortado: true`.
+  - La caché se consulta antes de verificar la clave: un audio guardado suena aunque falte la clave o no haya conexión (sección 9).
+  - `asistente.responder()` entrega además `audio` (bytes o `null`), `audio_desde_cache` y `aviso_audio` (el mensaje de la sección 7 cuando no hay audio). Un error de audio nunca impide entregar el texto (RF-19).
 
 ### 5.6.1 `voz.normalizar_para_audio(texto: str) -> str`
 
@@ -346,7 +360,12 @@ lab_2_Personal-shopper/
 │   ├── voz.py
 │   ├── asistente.py
 │   ├── demo.py
-│   └── errores.py
+│   ├── errores.py
+│   └── estilos.py        ← CSS y HTML de la interfaz (D-17)
+├── .streamlit/
+│   └── config.toml       ← colores base del tema (D-12)
+├── docs/
+│   └── prototipo_interfaz.html  ← referencia visual aprobada (D-12)
 ├── data/
 │   └── base_conocimiento.json
 ├── cache_audio/          ← audios reutilizables (NO se sube a Git)
@@ -425,6 +444,7 @@ venv/
 | Falta la clave o la voz de ElevenLabs | `ErrorConfiguracion` | "Por ahora la respuesta está disponible solo en texto." | El texto se muestra igual (RF-19). En la consola: qué variable de ElevenLabs falta. |
 | ElevenLabs sin conexión o con error | `ErrorConexion` / `ErrorServicio` | "El audio no está disponible en este momento." | El texto se muestra igual. |
 | Créditos de ElevenLabs agotados | `ErrorCuota` | "Se agotaron los créditos de audio de este mes. La respuesta se muestra solo en texto." | El texto se muestra igual. Los audios en caché siguen funcionando. |
+| Modo demo (`MODO_DEMO=true`) | — | "Modo demostración: el audio no está disponible." | No se llama a ElevenLabs (RF-20). *Agregado en T-23 (decisión de Yeimy).* |
 
 **Regla general:** los mensajes al usuario están escritos para el cliente. Nunca mencionan claves, archivos, variables, rutas internas ni trazas técnicas, y cuando el cliente no puede resolver el problema, le ofrecen una salida (WhatsApp). El detalle técnico se escribe solo en la consola, para la dueña, y nunca incluye el valor de las claves.
 
@@ -538,6 +558,8 @@ Los resultados se registran en `plan.md` como evidencia.
 - [x] Confirmar el supuesto D-11: la lista se recibe todo el miércoles, sin hora límite.
 - [x] Acortar FAQ-03 y FAQ-06 a menos de 400 caracteres (RF-27). *Hecho en la versión 1.3 de la base.*
 - [x] Escribir `tests/preguntas_evaluacion.json` antes de programar. *Hecho en T-04 (v1.0, 33 casos).*
+- [ ] Definir el trato al cliente en la interfaz: el saludo de D-15 usa "tú" y el resto de la app y la base usan "usted".
+- [ ] En T-25, verificar en Streamlit 1.67 el selector CSS de las pestañas (`button[data-baseweb="tab"]`) y la forma de cargar las letras de Google Fonts.
 
 ---
 

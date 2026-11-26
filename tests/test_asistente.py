@@ -9,11 +9,19 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src import asistente, gemini_client
+from src import asistente, gemini_client, voz
 from src.base_conocimiento import cargar_base
 from src.config import cargar_config
 from src.demo import PREFIJO_SIMULADA
-from src.errores import ErrorConexion, ErrorValidacion
+from src.errores import (
+    MENSAJE_AUDIO_DEMO,
+    MENSAJE_AUDIO_NO_DISPONIBLE,
+    MENSAJE_CUOTA_AUDIO,
+    MENSAJE_SOLO_TEXTO,
+    ErrorConexion,
+    ErrorCuota,
+    ErrorValidacion,
+)
 
 BASE = cargar_base()
 LIMITE = 400
@@ -356,3 +364,93 @@ def test_mensaje_calculadora_sale_de_tarifas_no_del_codigo():
     assert "₡2.500 si la entrega" in mensaje
     assert "20%" not in mensaje and "₡2.000" not in mensaje
     assert asistente.numeros_no_permitidos(mensaje, otra, "Si compro ₡22.000, ¿cuánto es?") == []
+
+
+# ---------- responder() con audio (T-23; RF-09, RF-19, RF-20) ----------
+
+AUDIO = b"ID3-audio-falso"
+
+
+def config_con_voz(**cambios):
+    return config(ELEVENLABS_API_KEY="clave-eleven-de-prueba", ELEVENLABS_VOICE_ID="voz-prueba",
+                  **cambios)
+
+
+def voz_falsa(audio=AUDIO):
+    cliente = MagicMock()
+    cliente.text_to_speech.convert.side_effect = lambda *a, **k: iter([audio])
+    return cliente
+
+
+@pytest.fixture
+def gemini_sinpe(monkeypatch):
+    monkeypatch.setattr(gemini_client, "generar_respuesta", MagicMock(return_value=gemini()))
+
+
+def test_responder_entrega_texto_y_audio(gemini_sinpe, tmp_path):
+    cliente_voz = voz_falsa()
+    final = asistente.responder("¿Cómo pago?", BASE, config_con_voz(),
+                                cliente_voz=cliente_voz, carpeta_cache=tmp_path)
+    assert final["respuesta"] == "Puede pagar por SINPE Móvil al 8888-0000."
+    assert final["audio"] == AUDIO
+    assert final["audio_desde_cache"] is False
+    assert final["aviso_audio"] is None
+    # el audio es del texto final (ya controlado), preparado para la voz
+    assert cliente_voz.text_to_speech.convert.call_args.kwargs["text"] == (
+        "Puede pagar por SINPE Móvil al 8 8 8 8, 0 0 0 0.")
+
+
+def test_responder_repetido_usa_la_cache(gemini_sinpe, tmp_path):
+    asistente.responder("¿Cómo pago?", BASE, config_con_voz(),
+                        cliente_voz=voz_falsa(), carpeta_cache=tmp_path)
+    otra = voz_falsa()
+    final = asistente.responder("¿Cómo pago?", BASE, config_con_voz(),
+                                cliente_voz=otra, carpeta_cache=tmp_path)
+    assert final["audio_desde_cache"] is True
+    otra.text_to_speech.convert.assert_not_called()
+
+
+def test_audio_del_mensaje_fijo_sin_informacion(monkeypatch, tmp_path):
+    monkeypatch.setattr(gemini_client, "generar_respuesta",
+                        MagicMock(return_value=gemini("Inventado.", suficiente=False)))
+    cliente_voz = voz_falsa()
+    final = asistente.responder("¿Venden ropa?", BASE, config_con_voz(),
+                                cliente_voz=cliente_voz, carpeta_cache=tmp_path)
+    assert final["respuesta"] == MENSAJE_SIN_INFO
+    assert "Inventado" not in cliente_voz.text_to_speech.convert.call_args.kwargs["text"]
+
+
+@pytest.mark.parametrize("falla, aviso", [
+    (ErrorCuota(MENSAJE_CUOTA_AUDIO, "créditos agotados"), MENSAJE_CUOTA_AUDIO),
+    (RuntimeError("fallo inesperado"), MENSAJE_AUDIO_NO_DISPONIBLE),
+])
+def test_si_el_audio_falla_el_texto_se_entrega_igual(gemini_sinpe, tmp_path, falla, aviso):
+    """RF-19: un error de audio nunca impide mostrar la respuesta."""
+    cliente_voz = MagicMock()
+    cliente_voz.text_to_speech.convert.side_effect = falla
+    final = asistente.responder("¿Cómo pago?", BASE, config_con_voz(),
+                                cliente_voz=cliente_voz, carpeta_cache=tmp_path)
+    assert final["respuesta"] == "Puede pagar por SINPE Móvil al 8888-0000."
+    assert final["fuentes"] == ["FAQ-14"]
+    assert final["audio"] is None
+    assert final["aviso_audio"] == aviso
+
+
+def test_sin_claves_de_elevenlabs_la_respuesta_es_solo_texto(gemini_sinpe, tmp_path, caplog):
+    with caplog.at_level("WARNING", logger="personal_shopper"):
+        final = asistente.responder("¿Cómo pago?", BASE, config(), carpeta_cache=tmp_path)
+    assert final["respuesta"] == "Puede pagar por SINPE Móvil al 8888-0000."
+    assert final["audio"] is None
+    assert final["aviso_audio"] == MENSAJE_SOLO_TEXTO
+    assert "ELEVENLABS_API_KEY" in caplog.text  # el detalle va a la consola, no al cliente
+
+
+def test_modo_demo_no_genera_audio_y_muestra_el_aviso(monkeypatch, tmp_path):
+    """RF-20 y decisión de Yeimy: aviso "Modo demostración: el audio no está disponible."."""
+    monkeypatch.setattr(voz, "sintetizar", MagicMock(side_effect=AssertionError("no debía")))
+    final = asistente.responder("¿A qué número hago el SINPE?", BASE,
+                                config_con_voz(MODO_DEMO="true"), carpeta_cache=tmp_path)
+    assert final["audio"] is None
+    assert final["aviso_audio"] == MENSAJE_AUDIO_DEMO == (
+        "Modo demostración: el audio no está disponible.")
+    assert not list(tmp_path.iterdir())
