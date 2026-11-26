@@ -91,4 +91,7 @@ def test_el_css_usa_los_colores_las_letras_y_los_selectores_de_streamlit_167():
     assert "Kalam" in css and "Baloo+2" in css
     assert '[data-testid="stTab"]' in css
     assert 'data-baseweb="tab"' not in css  # ese selector ya no existe en 1.67
+    assert ".react-aria-SelectionIndicator { display: none; }" in css  # sin raya bajo la pestaña
+    assert ".st-key-enviar button" in css  # Enviar en fucsia
+    assert ".stApp { background: #EAF4FD; }" in css  # página celeste, app en tarjeta blanca
     assert "PriceSmart" not in css  # D-12: no se usa la marca de otra empresa

@@ -10,9 +10,13 @@ entrar al HTML (D-17): así una pregunta con código no se ejecuta en la página
 La referencia visual es ``docs/prototipo_interfaz.html``.
 
 Selectores verificados en Streamlit 1.67 (T-25): las pestañas son
-``[data-testid="stTab"]`` (la activa lleva ``aria-selected="true"``); el
-contenedor principal es ``[data-testid="stMainBlockContainer"]``; cada widget
-con ``key`` lleva la clase ``st-key-<key>``.
+``[data-testid="stTab"]`` (la activa lleva ``aria-selected="true"`` y
+``data-selected``; su raya inferior es ``.react-aria-SelectionIndicator`` y la
+línea gris de la lista es el ``::after`` de ``[role="tablist"]``); la página es
+``.stApp``; el contenedor principal es ``[data-testid="stMainBlockContainer"]``;
+el campo de texto es ``[data-testid="stTextInputRootElement"]``; cada widget
+con ``key`` lleva la clase ``st-key-<key>`` (los formularios no la llevan: el
+botón Enviar tiene su propia ``key``).
 """
 
 from __future__ import annotations
@@ -44,20 +48,26 @@ CSS = f"""
 html, body, [class*="st-"], button, input, textarea {{
   font-family: 'Baloo 2', sans-serif;
 }}
+/* Página celeste y la app en una tarjeta blanca, como el prototipo (ajuste de T-25) */
+.stApp {{ background: {CELESTE}; }}
 [data-testid="stMainBlockContainer"] {{
   max-width: 440px;
-  padding-top: 1.2rem;
-  padding-bottom: 1.2rem;
+  background: #fff;
+  border: 1px solid #D5E2F3;
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 0 14px;
+  margin: 1.2rem auto;
 }}
 .ps-script {{ font-family: 'Kalam', cursive; font-weight: 700; }}
 
 /* Encabezado y pie (D-13) */
-.ps-encabezado {{ background: {AZUL}; border-radius: 20px 20px 0 0; padding: 14px 16px 12px; }}
+.ps-encabezado {{ background: {AZUL}; margin: 0 -14px; padding: 14px 16px 12px; }}
 .ps-encabezado .ps-titulo {{ margin: 0; color: #fff; font-size: 26px; line-height: 1.1; }}
 .ps-encabezado .ps-lema {{ margin: 0; color: #fff; font-size: 13px; }}
 .ps-encabezado .ps-lema span {{ background: {AMARILLO}; color: {AZUL}; padding: 0 6px; border-radius: 4px; font-weight: 700; }}
 .ps-encabezado .ps-raya {{ height: 3px; width: 120px; background: {FUCSIA}; border-radius: 2px; margin-top: 6px; }}
-.ps-pie {{ background: {AZUL}; border-radius: 0 0 20px 20px; display: flex; align-items: center;
+.ps-pie {{ background: {AZUL}; margin: 0 -14px; display: flex; align-items: center;
   justify-content: center; gap: 10px; padding: 8px; }}
 .ps-pie .ps-script {{ color: #fff; font-size: 22px; }}
 .ps-pie a {{ background: {VERDE}; color: #fff !important; text-decoration: none; border-radius: 999px;
@@ -76,12 +86,14 @@ html, body, [class*="st-"], button, input, textarea {{
 
 /* Pestañas (D-13): activa en azul oscuro con letra blanca; inactivas en blanco con letra gris */
 [data-testid="stTabs"] [role="tablist"] {{ gap: 6px; }}
+[data-testid="stTabs"] [role="tablist"]::after {{ display: none; }}
+[data-testid="stTab"] .react-aria-SelectionIndicator {{ display: none; }}
 [data-testid="stTab"] {{
   flex: 1; justify-content: center; background: #fff; border: 1.5px solid #D5E2F3 !important;
   border-radius: 999px; padding: 4px 8px; color: #7A86A0; height: auto;
 }}
 [data-testid="stTab"]:hover {{ background: #DCEAFB; color: {AZUL}; }}
-[data-testid="stTab"][aria-selected="true"] {{ background: {AZUL_OSCURO}; border-color: {AZUL_OSCURO} !important; color: #fff; }}
+[data-testid="stTab"][aria-selected="true"], [data-testid="stTab"][data-selected] {{ background: {AZUL_OSCURO}; border-color: {AZUL_OSCURO} !important; color: #fff; }}
 [data-testid="stTab"] p {{ font-weight: 500; font-size: 14px; }}
 [data-testid="stTab"][aria-selected="true"] p {{ font-weight: 700; }}
 
@@ -106,11 +118,14 @@ html, body, [class*="st-"], button, input, textarea {{
 [class*="st-key-rapida_"] button p {{ font-size: 13px; font-weight: 500; }}
 
 /* Botón Enviar (fucsia) y campo de pregunta */
-.st-key-form_pregunta [data-testid="stFormSubmitButton"] button {{
+.st-key-enviar button {{
   background: {FUCSIA}; color: #fff; border: none; border-radius: 999px;
 }}
-.st-key-form_pregunta [data-testid="stFormSubmitButton"] button:disabled {{ opacity: .55; }}
-.st-key-form_pregunta [data-testid="stTextInput"] input {{ border-radius: 999px; }}
+.st-key-enviar button:hover, .st-key-enviar button:focus {{ background: #B8155A; color: #fff; border: none; }}
+.st-key-enviar button:disabled {{ background: {FUCSIA}; color: #fff; opacity: .5; }}
+.st-key-campo_pregunta [data-testid="stTextInputRootElement"] {{
+  border-radius: 999px; border: 1.5px solid #C9D6EA; background: #fff;
+}}
 
 .ps-pronto {{ font-size: 15px; color: {GRIS}; text-align: center; margin: 6px 0; }}
 </style>

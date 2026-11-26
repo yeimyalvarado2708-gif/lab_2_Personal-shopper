@@ -32,7 +32,7 @@ def htmls(at):
 
 def preguntar(at, texto):
     at.text_input(key="campo_pregunta").input(texto)
-    at.button(key="FormSubmitter:form_pregunta-Enviar").click()
+    at.button(key="enviar").click()
     return at.run()
 
 

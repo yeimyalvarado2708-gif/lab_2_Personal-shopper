@@ -2,7 +2,7 @@
 [theme]
 base = "light"
 primaryColor = "#D81B6A"
-backgroundColor = "#EAF4FD"
+backgroundColor = "#FFFFFF"
 secondaryBackgroundColor = "#FFFFFF"
 textColor = "#1F2A44"
 

@@ -112,8 +112,8 @@ def pestana_preguntar(base: dict, config) -> None:
         campo, boton = st.columns([5, 1.4], vertical_alignment="bottom")
         campo.text_input("Su pregunta", key="campo_pregunta", placeholder="Escriba su pregunta…",
                          label_visibility="collapsed", disabled=procesando)
-        boton.form_submit_button("Enviar", on_click=enviar_escrita, disabled=procesando,
-                                 width="stretch")
+        boton.form_submit_button("Enviar", key="enviar", on_click=enviar_escrita,
+                                 disabled=procesando, width="stretch")
     if st.session_state.aviso_pregunta:
         st.caption(f":red[{st.session_state.aviso_pregunta}]")
 
