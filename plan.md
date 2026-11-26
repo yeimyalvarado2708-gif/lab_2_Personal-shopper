@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.32
+**Versión:** 1.33
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.14 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -91,7 +91,7 @@
 
 | ID | Tarea | Requisitos | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|---|
-| T-30 | `test_seguridad.py` y verificación de que `.env` no está en Git (`git ls-files`). | RNF-01, RNF-02 | Claude Code + Yeimy | ⬜ | Prueba aprobada y captura de `git ls-files`. |
+| T-30 | `test_seguridad.py` y verificación de que `.env` no está en Git (`git ls-files`). | RNF-01, RNF-02 | Claude Code + Yeimy | ✅ Hecho | Commit `5a0193e` (2026-11-26). `tests/test_seguridad.py`: 7 pruebas aprobadas, sin leer el contenido de `.env`: `.env` en `.gitignore`; `.env.example` con `GEMINI_API_KEY` y `ELEVENLABS_API_KEY` vacías (sección 10); `.env.example` sí se sube; y, como extra decidido por Yeimy, `git ls-files` no incluye `.env`, `.streamlit/secrets.toml` ni copias de `.env` en subcarpetas. Control: con un valor falso en `GEMINI_API_KEY`, la regla lo detecta. Verificación de Yeimy: `git ls-files` sin `.env` y `git ls-files \| grep -x ".env" \|\| echo "OK: .env no está en Git"` → *"OK: .env no está en Git"* (captura `evidencias/evidencia t30.png`, sin claves). Total del proyecto: 637 pruebas aprobadas. |
 | T-31 | Ejecutar todas las pruebas automatizadas con `pytest`. | Sección 10 del spec | Yeimy | ⬜ | Captura de `pytest` con todas las pruebas aprobadas. |
 | T-32 | Pruebas manuales de error: quitar la clave, desconectar internet y simular la cuota agotada. | RF-18, RF-19, prueba manual 4 | Yeimy | ⬜ | Capturas de los tres mensajes amigables. |
 | T-33 | `tests/evaluar.py`: recorrer el conjunto de evaluación con la API real (solo Gemini, una vez). | Sección 10 del spec | Claude Code + Yeimy | ⬜ | Resultados en `evidencias/evaluacion_AAAA-MM-DD.json` y revisión humana de cada caso. |
@@ -264,3 +264,4 @@ Se completa en la tarea T-34.
 | 2026-11-25 | 1.30 | Ajuste de T-27: página marcada en español para que Chrome no la traduzca; referencia a `spec.md` v1.12. |
 | 2026-11-25 | 1.31 | T-28 completada, con el arreglo del scroll; referencia a `spec.md` v1.13. |
 | 2026-11-26 | 1.32 | T-29 completada (banner de demo, avisos de error y prueba manual 4); termina la fase 4. |
+| 2026-11-26 | 1.33 | T-30 completada: pruebas de seguridad y verificación de `git ls-files`. |
