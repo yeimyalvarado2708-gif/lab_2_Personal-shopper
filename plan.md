@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.20
+**Versión:** 1.21
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.4 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -72,7 +72,7 @@
 
 | ID | Tarea | Requisitos | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|---|
-| T-21 | Obtener la clave de ElevenLabs, elegir una voz **prediseñada (premade)** y anotar su `voice_id` en `.env`. Revisar los créditos del mes. | Pendiente del spec | Yeimy | ⬜ | Créditos disponibles anotados en la sección 8. |
+| T-21 | Obtener la clave de ElevenLabs, elegir una voz **prediseñada (premade)** y anotar su `voice_id` en `.env`. Revisar los créditos del mes. | Pendiente del spec | Yeimy | ✅ Hecho | 2026-11-25: clave de ElevenLabs creada con solo 3 permisos (De texto a voz: Acceso; Voces: Leído; Usuario: Acceso) y guardada en `.env`. Créditos: plan Free, 10 000 de 10 000 disponibles, se renuevan el 2026-12-26 (sección 8). Voz elegida por Yeimy: **Bella - Professional, Bright, Warm** (`premade`, `voice_id` `hpp4J3VqNfWAUOO0d1Us`), confirmada por API (`voices.get`: categoría `premade`; `faltantes_elevenlabs()` vacío). Primera elección descartada: "Luisa - Amigable, Versátil", de la Biblioteca de voces; la API respondió `voice_not_found` porque no está en la cuenta y, en el plan gratuito, las voces de la Biblioteca no se pueden usar por API (spec, `ELEVENLABS_VOICE_ID`). Las consultas de voces y créditos no gastan créditos. Capturas `evidencias/evidencia t21.png` y `evidencias/evidencia t21 b.png` (créditos y lista de voces prediseñadas, sin claves visibles). |
 | T-22 | `voz.normalizar_para_audio()`: montos, teléfonos y símbolos. | RF-26 | Claude Code | ⬜ | Los 4 casos de 5.6.1 del spec pasan. |
 | T-23 | `src/voz.py`: llamada a ElevenLabs, caché en `cache_audio/`, tiempo de espera y traducción de errores. | RF-09, RF-11, RF-19, RNF-12 | Claude Code | ⬜ | `test_voz.py` (con mocks) pasa. |
 | T-24 | **Primera prueba real de audio:** generar un audio con monto y teléfono, y escucharlo. | Pruebas manuales 2 y 6 | Yeimy | ⬜ | Archivo MP3 y nota de cómo se pronunció, en `evidencias/`. |
@@ -221,8 +221,8 @@ Se completa en la tarea T-34.
 | Repositorio GitHub | https://github.com/yeimyalvarado2708-gif/lab_2_Personal-shopper (público) | 2026-11-23 |
 | Modelo de Gemini confirmado | `gemini-3.5-flash-lite` (entrada 1 048 576 tokens, salida 65 536) | 2026-11-25 |
 | Límites gratuitos de Gemini vigentes | Gemini 3.5 Flash Lite: 15 solicitudes por minuto (RPM) · 250 000 tokens por minuto (TPM) · 500 solicitudes por día (RPD) | 2026-11-25 |
-| Voz de ElevenLabs (nombre, no la clave) | | |
-| Créditos de ElevenLabs disponibles | | |
+| Voz de ElevenLabs (nombre, no la clave) | Bella - Professional, Bright, Warm (`premade`, `hpp4J3VqNfWAUOO0d1Us`) · modelo `eleven_multilingual_v2` | 2026-11-25 |
+| Créditos de ElevenLabs disponibles | Plan Free: 10 000 de 10 000 caracteres al mes · se renuevan el 2026-12-26 | 2026-11-25 |
 | Versiones de las dependencias (`streamlit`, `google-genai`, `elevenlabs`, `python-dotenv`, `pytest`) | streamlit 1.67.0 · google-genai 3.6.1 · elevenlabs 2.79.0 · python-dotenv 1.2.4 · pytest 9.2.0 | 2026-11-23 |
 
 ---
@@ -252,3 +252,4 @@ Se completa en la tarea T-34.
 | 2026-11-25 | 1.18 | Resultado del ciclo C-03: 54 pruebas de `test_asistente.py` aprobadas. |
 | 2026-11-25 | 1.19 | Ciclo C-03 cerrado con su commit; ajuste anotado en la fila de T-19 (387 pruebas en total); referencia a `spec.md` v1.4. |
 | 2026-11-25 | 1.20 | T-20 completada: primera respuesta real de Gemini, con su fuente. Termina la fase 2. |
+| 2026-11-25 | 1.21 | T-21 completada: clave de ElevenLabs con permisos mínimos, voz Bella (premade) y créditos anotados en la sección 8. |
