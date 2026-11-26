@@ -3,8 +3,8 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.15 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25 · 1.6: RF-20, 5.6 y sección 7 precisados en T-23 el 2026-11-25 · 1.7: diseño de la interfaz, D-12 a D-18, 2026-11-25 · 1.8: saludo con "usted" y selectores de Streamlit 1.67, en T-25 el 2026-11-25 · 1.9: RF-09 y D-15 precisados en T-26 el 2026-11-25 · 1.10: RF-26 y 5.6.1, montos en palabras para la voz, ciclo C-04 del 2026-11-25 · 1.11: D-16 precisado en T-27 el 2026-11-25 · 1.12: excepción de D-17 para marcar la página en español, 2026-11-25 · 1.13: RF-17 precisado en T-28 el 2026-11-25 · 1.14: presentación de los errores en pantalla, T-29 del 2026-11-26 · 1.15: RF-21 y 5.5, mensaje fijo para precios y marcas de productos, ciclo C-06 del 2026-11-26)
-**Documento relacionado:** `intent.md` v1.0
+**Versión:** 1.16 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25 · 1.6: RF-20, 5.6 y sección 7 precisados en T-23 el 2026-11-25 · 1.7: diseño de la interfaz, D-12 a D-18, 2026-11-25 · 1.8: saludo con "usted" y selectores de Streamlit 1.67, en T-25 el 2026-11-25 · 1.9: RF-09 y D-15 precisados en T-26 el 2026-11-25 · 1.10: RF-26 y 5.6.1, montos en palabras para la voz, ciclo C-04 del 2026-11-25 · 1.11: D-16 precisado en T-27 el 2026-11-25 · 1.12: excepción de D-17 para marcar la página en español, 2026-11-25 · 1.13: RF-17 precisado en T-28 el 2026-11-25 · 1.14: presentación de los errores en pantalla, T-29 del 2026-11-26 · 1.15: RF-21 y 5.5, mensaje fijo para precios y marcas de productos, ciclo C-06 del 2026-11-26 · 1.16: coherencia final con la app terminada, T-39 del 2026-11-26)
+**Documento relacionado:** `intent.md` v1.1
 
 ---
 
@@ -182,6 +182,8 @@ La calculadora **no llama a ninguna API**, así que funciona sin conexión.
 | `src/asistente.py` | Orquesta el flujo del chat y aplica los controles de RF-07, RF-21, RF-24 y RF-25. | `gemini_client`, `voz`, `demo`, `calculadora` |
 | `src/demo.py` | Respuestas simuladas por coincidencia de palabras clave, sin distinguir mayúsculas ni tildes. | `base_conocimiento` |
 | `src/errores.py` | Excepciones propias y sus mensajes amigables. | — |
+| `src/texto.py` | `recortar()`: la regla de recorte de RF-10, compartida por el chat y el audio (T-23). | — |
+| `src/historial.py` | Arma las entradas del historial de la sesión; no guarda nada en disco (RF-17, RNF-15; T-28). | `calculadora` |
 | `src/estilos.py` | CSS de la interfaz, carga de las letras y funciones que arman el HTML de lo que solo se muestra (encabezado, tarjetas, desglose, burbujas), con el texto escapado (D-12, D-17). | — |
 
 ### 4.5 Dependencias
@@ -349,6 +351,7 @@ lab_2_Personal-shopper/
 ├── spec.md
 ├── plan.md
 ├── README.md
+├── reflexion.md
 ├── requirements.txt
 ├── .env.example          ← nombres de variables, sin secretos
 ├── .env                  ← claves reales (NO se sube a Git)
@@ -365,6 +368,8 @@ lab_2_Personal-shopper/
 │   ├── asistente.py
 │   ├── demo.py
 │   ├── errores.py
+│   ├── texto.py          ← recorte a 400 caracteres (RF-10)
+│   ├── historial.py      ← entradas del historial de la sesión
 │   └── estilos.py        ← CSS y HTML de la interfaz (D-17)
 ├── .streamlit/
 │   └── config.toml       ← colores base del tema (D-12)
@@ -376,7 +381,13 @@ lab_2_Personal-shopper/
 ├── evidencias/           ← resultados de la evaluación y capturas (sin claves)
 └── tests/
     ├── preguntas_evaluacion.json
-    ├── evaluar.py        ← ejecución manual de la evaluación
+    ├── evaluar.py        ← ejecución manual de la evaluación (y --casos para reevaluar)
+    ├── conftest.py       ← bloquea la red real en todas las pruebas
+    ├── test_app.py
+    ├── test_config.py
+    ├── test_estilos.py
+    ├── test_historial.py
+    ├── test_evaluar.py
     ├── test_calculadora.py
     ├── test_validacion.py
     ├── test_base_conocimiento.py
@@ -409,9 +420,9 @@ MODO_DEMO=false
 | Variable | Obligatoria | Valor por defecto | Nota |
 |---|---|---|---|
 | `GEMINI_API_KEY` | Sí (si `MODO_DEMO=false`) | — | Se obtiene en Google AI Studio. |
-| `GEMINI_MODEL` | No | `gemini-3.5-flash-lite` | La documentación de Google recomienda 3.5 Flash-Lite o 3.8 Flash para proyectos nuevos. Se verifica en `plan.md` antes de programar. |
+| `GEMINI_MODEL` | No | `gemini-3.5-flash-lite` | La documentación de Google recomienda 3.5 Flash-Lite o 3.8 Flash para proyectos nuevos. Verificado en T-16 (`plan.md`, sección 8). |
 | `ELEVENLABS_API_KEY` | Sí (si `MODO_DEMO=false`) | — | Se obtiene en la configuración de la cuenta de ElevenLabs. |
-| `ELEVENLABS_VOICE_ID` | Sí (si `MODO_DEMO=false`) | — | **Pendiente:** se elige una voz **prediseñada (premade)** de la cuenta, porque la Biblioteca de voces no está disponible por API en el plan gratuito. |
+| `ELEVENLABS_VOICE_ID` | Sí (si `MODO_DEMO=false`) | — | Voz **prediseñada (premade)** de la cuenta, porque la Biblioteca de voces no está disponible por API en el plan gratuito. Elegida en T-21: Bella - Professional, Bright, Warm. |
 | `ELEVENLABS_MODEL` | No | `eleven_multilingual_v2` | Modelo multilingüe con soporte para español. |
 | `LIMITE_CARACTERES_RESPUESTA` | No | `400` | Decisión D-04. |
 | `TIEMPO_ESPERA_API` | No | `20` | Segundos (RNF-12). |
@@ -500,6 +511,8 @@ Se usa **pytest**. Las pruebas automatizadas **no llaman a las API reales**: usa
 | `test_coherencia_base.py` | Los porcentajes y montos de FAQ-02, FAQ-03 y FAQ-07 coinciden con la sección `tarifas` (RNF-14); ninguna respuesta de la base pasa de 400 caracteres (RF-27). | Validación de datos |
 | `test_seguridad.py` | `.env` está en `.gitignore`; `.env.example` no contiene valores en las variables `*_API_KEY`. | Claves fuera de Git |
 
+Durante el desarrollo se agregaron además `test_app.py` (interfaz con `AppTest`), `test_config.py`, `test_estilos.py`, `test_historial.py` y `test_evaluar.py`, y `conftest.py`, que bloquea la red real. Al 2026-11-26 son 682 pruebas aprobadas (detalle por archivo en `plan.md`, T-31).
+
 **Conjunto de evaluación (`tests/preguntas_evaluacion.json`):** se define antes de programar y no se cambia después de ver los resultados. Cada caso tiene la pregunta, el tipo y el resultado esperado (la FAQ de origen o el mensaje fijo). Contiene:
 
 | Tipo | Cantidad | Resultado esperado |
@@ -556,11 +569,11 @@ Los resultados se registran en `plan.md` como evidencia.
 
 ## 12. Pendientes antes de programar
 
-- [ ] Elegir la voz prediseñada (premade) de ElevenLabs y anotar su `voice_id` en `.env`.
+- [x] Elegir la voz prediseñada (premade) de ElevenLabs y anotar su `voice_id` en `.env`. *Hecho en T-21 (2026-11-25): Bella - Professional, Bright, Warm.*
 - [x] Confirmar en Google AI Studio que `gemini-3.5-flash-lite` está disponible para la cuenta, y verificar los límites gratuitos vigentes. *Hecho en T-16 (2026-11-25).*
-- [ ] Verificar en ElevenLabs los créditos disponibles del mes.
+- [x] Verificar en ElevenLabs los créditos disponibles del mes. *Hecho en T-21 (10 000 de 10 000) y revisado antes del video de T-36 (9 455).*
 - [x] Revisar la versión de Python instalada en la Mac (debe ser 3.11 o superior). *Hecho en T-06 (Python 3.14.7).*
-- [ ] Revisar las condiciones vigentes del plan gratuito de Gemini sobre el uso de los datos enviados, y mencionarlo en la reflexión.
+- [x] Revisar las condiciones vigentes del plan gratuito de Gemini sobre el uso de los datos enviados. *Hecho en T-39 (2026-11-26), en los términos adicionales de la API de Gemini: en el plan gratuito, Google puede usar las preguntas y respuestas para mejorar sus productos y revisores humanos pueden leerlas; se recomienda no enviar datos personales o sensibles. Se anotó en el README, no en la reflexión, que ya estaba en 396 de 400 palabras.*
 - [x] Confirmar el supuesto D-11: la lista se recibe todo el miércoles, sin hora límite.
 - [x] Acortar FAQ-03 y FAQ-06 a menos de 400 caracteres (RF-27). *Hecho en la versión 1.3 de la base.*
 - [x] Escribir `tests/preguntas_evaluacion.json` antes de programar. *Hecho en T-04 (v1.0, 33 casos).*

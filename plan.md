@@ -3,8 +3,8 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.43
-**Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.15 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
+**Versión:** 1.44
+**Documentos relacionados:** `intent.md` v1.1 · `spec.md` v1.16 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
 
@@ -105,7 +105,7 @@
 | T-36 | Video o capturas que muestren el texto generado, el audio y el manejo de un error. | Yeimy | ✅ Hecho | 2026-11-26: video grabado por Yeimy con la app real (`MODO_DEMO=false`), con el guion acordado: texto con fuente y categoría, audio de ElevenLabs, pregunta fuera de la base con WhatsApp, mensaje de productos (C-06), calculadora, historial y manejo de un error (app abierta sin la clave de Gemini). **Entregado al profesor por WhatsApp.** El archivo no está en `evidencias/` ni en Git: un video de varios minutos puede pasar el límite de 100 MB de GitHub. Créditos antes de grabar: ElevenLabs 9 455 de 10 000 (plan Free; se renuevan el 2026-12-26); Gemini, unas 90 solicitudes del día, dentro del límite de 500. Respaldo en capturas: `evidencia t26.png` (audio), `evidencia t29 sin clave.png` y `evidencia t32 *.png` (errores). |
 | T-37 | Completar el registro de iteraciones (mínimo 3 ciclos de código). | Yeimy | ✅ Hecho | 2026-11-26: la sección 5.2 tiene **6 ciclos completos (C-01 a C-06)**, el doble del mínimo. Revisión de Claude Code: las 8 columnas de cada ciclo están llenas con datos reales; los commits citados existen (`f0745c7`, `dfa9ad9`, `94bf382`, `ee63dbb`; se agregó `3dfb441` a C-06, que no lo tenía); las capturas citadas están en `evidencias/`. C-01 no tiene commit porque fue un comando en la Terminal y su regla se aplicó en T-17. Se agregó una nota sobre qué "momentos probables" terminaron siendo ciclos. Revisado y validado por Yeimy. |
 | T-38 | Reflexión de 250 a 400 palabras: decisiones humanas, limitaciones del modelo, seguridad y aprendizajes. | Yeimy | ✅ Hecho | 2026-11-26: `reflexion.md` escrito por Yeimy a partir de un esquema y un borrador de Claude Code, que reescribió con su voz: decisiones humanas (la app nace de su negocio, base de conocimiento y diseño propios, trato de "usted", WhatsApp para seguir la atención con ella, revisión de los audios), limitaciones (planes gratuitos y 400 caracteres; el modelo no siempre entiende como se espera: a "¿Cuánto cuesta un televisor?" respondió cómo verificar si hay un producto, y en otra prueba agregó una razón que no estaba en la base, por lo que hay que revisar cada respuesta; ideas a futuro: consultas por voz y una API de PriceSmart), seguridad (claves solo en `.env`, fuera de Git) y aprendizajes (intent, spec y plan; pruebas con mocks; ser dueña de su programa). **396 palabras** (rango 250 a 400), verificadas con `split()` de Python sobre el texto de las cuatro secciones, sin títulos. |
-| T-39 | Revisar la coherencia final de intent, spec y plan con la app terminada. Subir a GitHub o crear el ZIP. | Yeimy | ⬜ | Enlace del repositorio o ZIP entregado. |
+| T-39 | Revisar la coherencia final de intent, spec y plan con la app terminada. Subir a GitHub o crear el ZIP. | Yeimy | ✅ Hecho | 2026-11-26: revisión de coherencia con la app terminada. **`intent.md` v1.1** (decisión de Yeimy): el alcance y la privacidad decían que a Gemini se le enviaban "las FAQ relevantes" buscadas por palabras clave; se alinearon con D-02 (base completa; la búsqueda por palabras clave es solo del modo demo). Objetivos y criterios de éxito sin cambios: el 4 de 5 de T-33 se mide contra la meta original. **`spec.md` v1.16:** sección 12 cerrada (voz y créditos hechos en T-21; condiciones de datos de Gemini revisadas en T-39); `ELEVENLABS_VOICE_ID` y `GEMINI_MODEL` sin "pendiente"; `texto.py` e `historial.py` en la tabla de módulos y en la estructura; archivos de prueba agregados durante el desarrollo; `README.md` y `reflexion.md` en la estructura. **Condiciones de datos de Gemini** (decisión de Yeimy: revisarlas): según los términos adicionales de la API de Gemini, en el plan gratuito Google puede usar las preguntas y respuestas para mejorar sus productos y revisores humanos pueden leerlas (desvinculadas de la cuenta); se recomienda no enviar datos personales. Se agregó al README con el enlace oficial; la reflexión no cambia (396 de 400 palabras). **`plan.md` v1.44:** referencias a intent v1.1 y spec v1.16; créditos de ElevenLabs revisados antes del video. Repositorio público al día: https://github.com/yeimyalvarado2708-gif/lab_2_Personal-shopper. Validado por Yeimy. Entrega: enlace del repositorio público. |
 
 ---
 
@@ -226,7 +226,7 @@ Se completa en la tarea T-34.
 | Modelo de Gemini confirmado | `gemini-3.5-flash-lite` (entrada 1 048 576 tokens, salida 65 536) | 2026-11-25 |
 | Límites gratuitos de Gemini vigentes | Gemini 3.5 Flash Lite: 15 solicitudes por minuto (RPM) · 250 000 tokens por minuto (TPM) · 500 solicitudes por día (RPD) | 2026-11-25 |
 | Voz de ElevenLabs (nombre, no la clave) | Bella - Professional, Bright, Warm (`premade`, `hpp4J3VqNfWAUOO0d1Us`) · modelo `eleven_multilingual_v2` | 2026-11-25 |
-| Créditos de ElevenLabs disponibles | Plan Free: 10 000 de 10 000 caracteres al mes · se renuevan el 2026-12-26. Después de T-24: 9 898 disponibles (102 usados). Después de T-26 y C-04: 9 455 disponibles | 2026-11-25 |
+| Créditos de ElevenLabs disponibles | Plan Free: 10 000 de 10 000 caracteres al mes · se renuevan el 2026-12-26. Después de T-24: 9 898 disponibles (102 usados). Después de T-26 y C-04: 9 455 disponibles. Revisado antes del video de T-36: 9 455 de 10 000 (se renuevan el 2026-12-26) | 2026-11-26 |
 | Versiones de las dependencias (`streamlit`, `google-genai`, `elevenlabs`, `python-dotenv`, `pytest`) | streamlit 1.67.0 · google-genai 3.6.1 · elevenlabs 2.79.0 · python-dotenv 1.2.4 · pytest 9.2.0 | 2026-11-23 |
 
 ---
@@ -279,3 +279,4 @@ Se completa en la tarea T-34.
 | 2026-11-26 | 1.41 | T-36 completada: video con la app real, entregado al profesor por WhatsApp. |
 | 2026-11-26 | 1.42 | T-37 completada: revisión de los 6 ciclos; commit de C-06 agregado y nota sobre los momentos probables. |
 | 2026-11-26 | 1.43 | T-38 completada: `reflexion.md` de 396 palabras, con ejemplos del comportamiento del modelo. |
+| 2026-11-26 | 1.44 | T-39 completada: coherencia final; `intent.md` v1.1, `spec.md` v1.16 y condiciones de datos de Gemini en el README. |

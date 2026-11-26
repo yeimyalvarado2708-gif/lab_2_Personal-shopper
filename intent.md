@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.0
+**Versión:** 1.1 (1.1: alcance y privacidad alineados con la decisión D-02 del spec, en la revisión final T-39 del 2026-11-26)
 
 ---
 
@@ -50,8 +50,8 @@ Desarrollar un asistente de atención al cliente con voz que responda las pregun
 ### Incluye
 
 - Una interfaz web local hecha con Streamlit, donde el cliente escribe su pregunta.
-- Búsqueda de las preguntas relevantes en `data/base_conocimiento.json` usando las palabras clave.
-- La generación de la respuesta con Gemini, limitada a la información recuperada.
+- El envío de la base de conocimiento completa (`data/base_conocimiento.json`) a Gemini en cada consulta, porque es pequeña y no tiene datos sensibles (decisión D-02 del spec). La búsqueda por palabras clave se usa solo en el modo demostración.
+- La generación de la respuesta con Gemini, limitada a la información de la base.
 - Un mensaje explícito cuando no hay datos suficientes, con remisión a WhatsApp (derivación a la dueña).
 - La conversión de la respuesta en audio con ElevenLabs y su reproducción en la interfaz.
 - Un historial de al menos cinco interacciones durante la sesión.
@@ -111,7 +111,7 @@ Desarrollar un asistente de atención al cliente con voz que responda las pregun
 |---|---|
 | **Costo** | Solo planes gratuitos: Gemini API mediante Google AI Studio y ElevenLabs Free. Cero costo de operación para el MVP. |
 | **Límites de API** | Los créditos y solicitudes de los planes gratuitos son limitados y pueden cambiar. Se deben verificar en cada plataforma antes de empezar. Para cuidar los créditos, el audio se genera solo con respuestas cortas, y las pruebas automatizadas usan *mocks* en lugar de llamadas reales. |
-| **Privacidad** | No se usan datos personales reales: el número de SINPE y el de WhatsApp son ficticios (8888-0000) y no se guardan números de cuenta. Las claves API viven solo en `.env`, que está excluido de Git con `.gitignore`. A Gemini solo se le envía la pregunta y las FAQ relevantes, nunca datos de clientes. |
+| **Privacidad** | No se usan datos personales reales: el número de SINPE y el de WhatsApp son ficticios (8888-0000) y no se guardan números de cuenta. Las claves API viven solo en `.env`, que está excluido de Git con `.gitignore`. A Gemini solo se le envía la pregunta y la base de conocimiento, nunca datos de clientes guardados por el negocio. |
 | **Conectividad** | La aplicación necesita internet para Gemini y ElevenLabs. Sin conexión, la calculadora y la próxima fecha siguen funcionando porque son locales, y se muestra un aviso para la parte de IA. Si se agota el crédito, se presenta una demostración con respuestas simuladas claramente identificadas. |
 | **Tiempo** | El proyecto se desarrolla individualmente dentro del plazo del laboratorio. Se prioriza cumplir los mínimos funcionales antes que el reto adicional. |
 | **Técnicas** | Python 3.11+, Streamlit, el SDK oficial de Gemini, la API de ElevenLabs, Git/GitHub y Visual Studio Code con Claude Code. |
