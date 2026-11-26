@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.4 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25)
+**Versión:** 1.5 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25)
 **Documento relacionado:** `intent.md` v1.0
 
 ---
@@ -55,7 +55,7 @@ Estas decisiones las tomó la autora antes de escribir la especificación. Todo 
 | **RF-09** | El sistema debe convertir automáticamente cada respuesta en audio con ElevenLabs y mostrar un reproductor en la interfaz. El audio **no se reproduce automáticamente** (D-03). |
 | **RF-10** | Toda respuesta mostrada al cliente tiene **máximo 400 caracteres** (`LIMITE_CARACTERES_RESPUESTA`). Si Gemini devuelve un texto más largo, el sistema lo recorta en la última oración completa dentro del límite. *Si no termina ninguna oración dentro del límite, se corta en la última palabra completa y se agrega "…" (decisión de Yeimy en T-19). Los textos fijos de RF-25 y el prefijo [RESPUESTA SIMULADA] cuentan dentro del límite.* El texto en pantalla y el del audio son el mismo. |
 | **RF-11** | Antes de llamar a ElevenLabs, el sistema debe buscar en la caché (`cache_audio/`) un audio generado antes para el mismo texto, voz y modelo. Si existe, lo reutiliza sin gastar créditos. |
-| **RF-26** | Antes de enviar el texto a ElevenLabs, el sistema debe **prepararlo para la voz**: convertir "₡36.500" en "36500 colones", leer los números de teléfono dígito por dígito ("8 8 8 8, 0 0 0 0") y quitar símbolos que no se pronuncian (como `*` o `#`). El texto en pantalla no cambia. |
+| **RF-26** | Antes de enviar el texto a ElevenLabs, el sistema debe **prepararlo para la voz**: convertir "₡36.500" en "36500 colones", leer los números de teléfono dígito por dígito ("8 8 8 8, 0 0 0 0") y quitar símbolos que no se pronuncian (como `*` o `#`). El texto en pantalla no cambia. **Precisiones de T-22 (decisión de Yeimy, 2026-11-25):** `%`, `+` y `=` se leen en palabras ("por ciento", "más", "es igual a"), porque la voz multilingüe a veces los lee en inglés o se los salta; los céntimos se dejan con coma ("₡14.999,99" → "14999,99 colones"); los teléfonos de 8 dígitos se leen dígito por dígito aunque vengan sin guion. |
 | **RF-27** | Cada respuesta de la base de conocimiento tiene máximo 400 caracteres. La lista completa de barrios no va en el texto de FAQ-06, sino en la sección `zonas_domicilio`: así el asistente puede confirmar un barrio específico ("¿entregan en Pinares?") sin pasarse del límite. |
 
 ### Calendario y calculadora
@@ -310,6 +310,8 @@ Las versiones exactas se fijan en `requirements.txt` cuando se instalen por prim
 | `"Envío de ₡2.000"` | `"Envío de 2000 colones"` |
 | `"SINPE al 8888-0000"` | `"SINPE al 8 8 8 8, 0 0 0 0"` |
 | `"**Importante:** pague antes"` | `"Importante: pague antes"` |
+| `"factura de ₡30.000 + 15% = ₡34.500"` | `"factura de 30000 colones más 15 por ciento es igual a 34500 colones"` (agregado en T-22) |
+| `"₡14.999,99"` | `"14999,99 colones"` (agregado en T-22) |
 - **Errores:** los mismos tipos que en Gemini, con mensajes propios de audio.
 
 ### 5.7 `demo.responder(pregunta: str, base: dict, fechas: dict) -> dict`
