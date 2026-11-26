@@ -3,8 +3,8 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.24
-**Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.6 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
+**Versión:** 1.25
+**Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.8 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
 
@@ -81,7 +81,7 @@
 
 | ID | Tarea | Requisitos | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|---|
-| T-25 | `app.py`: chat con campo de pregunta, botón Enviar (desactivado mientras procesa), respuesta, fuente y categoría. | RF-01, RF-08, RF-31 | Claude Code | ⬜ | La app abre con `streamlit run app.py` y responde en modo demo. |
+| T-25 | `app.py`: chat con campo de pregunta, botón Enviar (desactivado mientras procesa), respuesta, fuente y categoría. | RF-01, RF-08, RF-31 | Claude Code | ✅ Hecho | Commit `0bf9b75` (2026-11-25). La app abre con `MODO_DEMO=true streamlit run app.py` y responde en modo demo: encabezado, tarjeta de próxima compra con "¡Cierra hoy!" (D-14), pestañas Preguntar, Estimar e Historial (las dos últimas con "Disponible pronto." hasta T-27 y T-28), preguntas rápidas, burbujas con "Fuente: FAQ-14" y la categoría "Pagos", y pie con WhatsApp. Captura `evidencias/evidencia t25.png`. Archivos: `app.py`, `src/estilos.py` (CSS y HTML con `html.escape`, D-17) y `.streamlit/config.toml` (colores, sin secretos); `.streamlit/secrets.toml` agregado a `.gitignore`. 26 pruebas nuevas: `test_estilos.py` (13) y `test_app.py` (13, con `AppTest` en modo demo: pregunta escrita y rápidas, solo la última conversación, pregunta vacía, texto con código escapado, controles desactivados mientras procesa (RF-31), errores amigables, base dañada y la consola sin la pregunta). Decisiones de Yeimy: trato de "usted" en toda la app, también en el saludo (*"¿Necesita información de nuestro servicio?"*); T-25 incluye la estructura completa y la pestaña Preguntar; solo se ve la última conversación. Hallazgo: el selector `button[data-baseweb="tab"]` ya no existe en Streamlit 1.67; las pestañas son `[data-testid="stTab"]` (`spec.md` v1.8). **Nota:** los cambios de diseño de `spec.md` v1.7 (D-12 a D-18), escritos por Yeimy, entraron sin querer en el commit `b7a9dd1` de T-23; el contenido es correcto y no se reescribió el historial. Total del proyecto: 522 pruebas aprobadas. |
 | T-26 | Reproductor de audio (sin reproducción automática) y avisos cuando el audio no está disponible. | RF-09, RF-19, D-03 | Claude Code | ⬜ | Captura de una respuesta con reproductor. |
 | T-27 | Formulario de la calculadora de estimado, con su desglose y leyenda. | RF-13 a RF-16 | Claude Code | ⬜ | Captura del caso ₡30.000 en La Trocha = ₡36.500. |
 | T-28 | Historial de la sesión (mínimo 5, del más reciente al más antiguo, solo en memoria). | RF-17, RNF-15 | Claude Code | ⬜ | Captura después de 6 consultas. |
@@ -256,3 +256,4 @@ Se completa en la tarea T-34.
 | 2026-11-25 | 1.22 | T-22 completada: texto preparado para la voz, con las decisiones sobre símbolos y céntimos; referencia a `spec.md` v1.5. |
 | 2026-11-25 | 1.23 | T-23 completada: audio con caché, sin reintentos y conectado con `responder()`; referencia a `spec.md` v1.6. |
 | 2026-11-25 | 1.24 | T-24 completada: primer audio real con Bella, bien pronunciado; créditos actualizados en la sección 8. Termina la fase 3. |
+| 2026-11-25 | 1.25 | T-25 completada: estructura de la pantalla y pestaña Preguntar; referencia a `spec.md` v1.8; nota sobre el commit `b7a9dd1`. |
