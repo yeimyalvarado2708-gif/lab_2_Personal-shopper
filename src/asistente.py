@@ -18,7 +18,9 @@ Requisitos: RF-06, RF-07, RF-10, RF-21, RF-24, RF-25 (spec 4.2, pasos 2 a 7).
 
 5. Genera el audio con ``voz.sintetizar()`` (T-23). Si falla, el texto se
    entrega igual con un aviso (RF-19). En modo demo no se genera audio y se
-   entrega el aviso de demo (RF-20).
+   entrega el aviso de demo (RF-20). Sin información suficiente (RF-21) no se
+   genera audio: la interfaz muestra el botón de WhatsApp (D-15; decisión de
+   Yeimy en T-26, ahorra créditos).
 
 Decisiones de Yeimy (2026-11-25, T-19):
 
@@ -303,7 +305,10 @@ def responder(
         crudo, base, pregunta, config.limite_caracteres_respuesta, prefijo
     )
     resultado["modo_demo"] = config.modo_demo
-    resultado.update(_audio_de(resultado["respuesta"], config, cliente_voz, carpeta_cache))
+    if resultado["informacion_suficiente"]:
+        resultado.update(_audio_de(resultado["respuesta"], config, cliente_voz, carpeta_cache))
+    else:  # D-15: en lugar del audio, botón de WhatsApp (sin aviso ni gasto de créditos)
+        resultado.update({"audio": None, "audio_desde_cache": False, "aviso_audio": None})
     return resultado
 
 

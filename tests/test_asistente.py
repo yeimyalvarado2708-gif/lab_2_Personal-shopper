@@ -410,14 +410,35 @@ def test_responder_repetido_usa_la_cache(gemini_sinpe, tmp_path):
     otra.text_to_speech.convert.assert_not_called()
 
 
-def test_audio_del_mensaje_fijo_sin_informacion(monkeypatch, tmp_path):
+def test_sin_informacion_no_genera_audio(monkeypatch, tmp_path):
+    """D-15 y decisión de Yeimy (T-26): sin información, botón de WhatsApp y no se gastan créditos."""
     monkeypatch.setattr(gemini_client, "generar_respuesta",
                         MagicMock(return_value=gemini("Inventado.", suficiente=False)))
     cliente_voz = voz_falsa()
     final = asistente.responder("¿Venden ropa?", BASE, config_con_voz(),
                                 cliente_voz=cliente_voz, carpeta_cache=tmp_path)
     assert final["respuesta"] == MENSAJE_SIN_INFO
-    assert "Inventado" not in cliente_voz.text_to_speech.convert.call_args.kwargs["text"]
+    assert final["audio"] is None and final["aviso_audio"] is None
+    cliente_voz.text_to_speech.convert.assert_not_called()
+
+
+def test_sin_informacion_en_modo_demo_no_muestra_el_aviso_de_demo(tmp_path):
+    final = asistente.responder("¿Venden ropa?", BASE, config_con_voz(MODO_DEMO="true"),
+                                carpeta_cache=tmp_path)
+    assert final["informacion_suficiente"] is False
+    assert final["audio"] is None and final["aviso_audio"] is None
+
+
+def test_respuesta_con_dos_partes_si_tiene_audio(monkeypatch, tmp_path):
+    """RF-25: la parte respondida tiene audio (el botón de WhatsApp lo agrega la interfaz)."""
+    monkeypatch.setattr(gemini_client, "generar_respuesta",
+                        MagicMock(return_value=gemini(aclaracion=True)))
+    cliente_voz = voz_falsa()
+    final = asistente.responder("¿Cómo pago y venden ropa?", BASE, config_con_voz(),
+                                cliente_voz=cliente_voz, carpeta_cache=tmp_path)
+    assert final["aclaracion_pendiente"] is True
+    assert final["audio"] == AUDIO
+    cliente_voz.text_to_speech.convert.assert_called_once()
 
 
 @pytest.mark.parametrize("falla, aviso", [

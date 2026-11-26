@@ -94,4 +94,33 @@ def test_el_css_usa_los_colores_las_letras_y_los_selectores_de_streamlit_167():
     assert ".react-aria-SelectionIndicator { display: none; }" in css  # sin raya bajo la pestaña
     assert ".st-key-enviar button" in css  # Enviar en fucsia
     assert ".stApp { background: #EAF4FD; }" in css  # página celeste, app en tarjeta blanca
+    assert "'Material Symbols Rounded' !important" in css  # los íconos no toman la letra Baloo 2
     assert "PriceSmart" not in css  # D-12: no se usa la marca de otra empresa
+
+
+# ---------- T-26: WhatsApp y aviso de audio ----------
+
+def test_enlace_de_whatsapp_con_mensaje_inicial():
+    enlace = estilos.enlace_whatsapp("8888-0000", estilos.MENSAJE_WHATSAPP)
+    assert enlace == ("https://wa.me/50688880000?text=Hola%2C%20tengo%20una%20consulta%20sobre"
+                      "%20el%20servicio%20de%20Personal%20Shopper.")
+
+
+def test_el_mensaje_de_whatsapp_no_lleva_la_pregunta_y_usa_usted():
+    assert estilos.MENSAJE_WHATSAPP == "Hola, tengo una consulta sobre el servicio de Personal Shopper."
+
+
+def test_el_aviso_de_audio_se_escapa():
+    html = estilos.aviso_audio(ATAQUE)
+    assert "<script>" not in html and "&lt;script&gt;" in html
+
+
+@pytest.mark.parametrize("suficiente, aclaracion, esperado", [
+    (True, False, False),   # respuesta normal: solo audio
+    (False, False, True),   # RF-21: botón en lugar del audio
+    (True, True, True),     # RF-25: audio y botón (decisión de Yeimy)
+])
+def test_cuando_se_muestra_el_boton_de_whatsapp(suficiente, aclaracion, esperado):
+    resultado = {"informacion_suficiente": suficiente, "aclaracion_pendiente": aclaracion}
+    assert estilos.necesita_whatsapp(resultado) is esperado
+

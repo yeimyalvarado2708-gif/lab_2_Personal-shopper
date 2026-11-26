@@ -24,6 +24,7 @@ from __future__ import annotations
 import html
 import re
 from datetime import date
+from urllib.parse import quote
 
 from src.demo import _DIAS, _MESES
 
@@ -40,6 +41,10 @@ TEXTO = "#1F2A44"
 GRIS = "#5B6680"
 
 SALUDO = "¿Necesita información de nuestro servicio?"  # decisión de Yeimy: "usted" en todo
+# Decisión de Yeimy (T-26): el botón de WhatsApp abre el chat con este texto
+# ya escrito. No incluye la pregunta del cliente.
+MENSAJE_WHATSAPP = "Hola, tengo una consulta sobre el servicio de Personal Shopper."
+ETIQUETA_WHATSAPP = "Escribir por WhatsApp"
 
 CSS = f"""
 <style>
@@ -48,6 +53,8 @@ CSS = f"""
 html, body, [class*="st-"], button, input, textarea {{
   font-family: 'Baloo 2', sans-serif;
 }}
+/* Los íconos de Streamlit conservan su propia fuente (si no, se ve la palabra "chat") */
+[data-testid="stIconMaterial"] {{ font-family: 'Material Symbols Rounded' !important; }}
 /* Página celeste y la app en una tarjeta blanca, como el prototipo (ajuste de T-25) */
 .stApp {{ background: {CELESTE}; }}
 [data-testid="stMainBlockContainer"] {{
@@ -127,6 +134,16 @@ html, body, [class*="st-"], button, input, textarea {{
   border-radius: 999px; border: 1.5px solid #C9D6EA; background: #fff;
 }}
 
+/* Audio y WhatsApp (T-26) */
+[data-testid="stAudio"] {{ margin-top: -4px; }}
+.ps-aviso-audio {{ margin: 0; font-size: 13px; color: {GRIS}; }}
+.st-key-whatsapp a {{
+  background: {VERDE}; color: #fff !important; border: none; border-radius: 999px;
+  padding: 4px 14px; min-height: 0; text-decoration: none;
+}}
+.st-key-whatsapp a:hover {{ background: #1C7F33; color: #fff !important; }}
+.st-key-whatsapp a p {{ font-size: 14px; font-weight: 500; }}
+
 .ps-pronto {{ font-size: 15px; color: {GRIS}; text-align: center; margin: 6px 0; }}
 </style>
 """
@@ -196,7 +213,7 @@ def burbuja_respuesta(respuesta: str, fuentes: list[str], categoria: str) -> str
     """Respuesta con su fuente y su categoría (RF-08).
 
     Sin fuentes (RF-21) no se muestra la etiqueta de fuente. El reproductor de
-    audio y el botón de WhatsApp se agregan en T-26.
+    audio y el botón de WhatsApp son widgets de ``app.py`` (T-26).
     """
     etiquetas = ""
     if fuentes:
@@ -211,10 +228,28 @@ def burbuja_respuesta(respuesta: str, fuentes: list[str], categoria: str) -> str
     )
 
 
-def enlace_whatsapp(telefono: str) -> str:
-    """"8888-0000" → "https://wa.me/50688880000" (Costa Rica, código 506)."""
+def enlace_whatsapp(telefono: str, mensaje: str | None = None) -> str:
+    """"8888-0000" → "https://wa.me/50688880000" (Costa Rica, código 506).
+
+    Con ``mensaje``, el chat se abre con ese texto ya escrito (``?text=``).
+    """
     digitos = re.sub(r"\D", "", telefono)
-    return f"https://wa.me/506{digitos}"
+    enlace = f"https://wa.me/506{digitos}"
+    return f"{enlace}?text={quote(mensaje)}" if mensaje else enlace
+
+
+def aviso_audio(aviso: str) -> str:
+    """Aviso en el lugar del reproductor (RF-19, D-18), con el texto escapado."""
+    return f'<p class="ps-aviso-audio">🔇 {_e(aviso)}</p>'
+
+
+def necesita_whatsapp(resultado: dict) -> bool:
+    """Botón de WhatsApp: sin información (RF-21, D-15) o con dos partes (RF-25).
+
+    Decisión de Yeimy (T-26): en las respuestas con dos partes se muestran el
+    audio y el botón.
+    """
+    return not resultado["informacion_suficiente"] or bool(resultado.get("aclaracion_pendiente"))
 
 
 def pie(telefono: str) -> str:

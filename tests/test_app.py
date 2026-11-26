@@ -10,7 +10,12 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from src import asistente, base_conocimiento
-from src.errores import ErrorBaseConocimiento, ErrorConexion
+from src.errores import (
+    MENSAJE_AUDIO_DEMO,
+    MENSAJE_CUOTA_AUDIO,
+    ErrorBaseConocimiento,
+    ErrorConexion,
+)
 
 TIEMPO = 30
 APP = str(Path(__file__).resolve().parent.parent / "app.py")
@@ -148,3 +153,61 @@ def test_la_consola_no_registra_la_pregunta(caplog):
     with caplog.at_level("DEBUG", logger="personal_shopper"):
         preguntar(abrir(), "Mi pregunta privada sobre el SINPE")
     assert "Mi pregunta privada" not in caplog.text  # RNF-15
+
+
+# ---------- T-26: reproductor, aviso y WhatsApp ----------
+
+def respuesta(**cambios):
+    """Un resultado de ``responder()`` con audio (formato de T-23)."""
+    base = {"respuesta": "Puede pagar por SINPE Móvil al 8888-0000.", "fuentes": ["FAQ-14"],
+            "categoria": "Pagos", "informacion_suficiente": True, "aclaracion_pendiente": False,
+            "recortado": False, "controles": [], "modo_demo": False,
+            "audio": b"ID3-audio-falso", "audio_desde_cache": False, "aviso_audio": None}
+    return {**base, **cambios}
+
+
+def con_respuesta(monkeypatch, resultado):
+    monkeypatch.setattr(asistente, "responder", lambda *a, **k: resultado)
+    return preguntar(abrir(), "¿Cómo pago?")
+
+
+def test_respuesta_con_reproductor_que_no_suena_solo(monkeypatch):
+    at = con_respuesta(monkeypatch, respuesta())
+    reproductores = at.get("audio")
+    assert len(reproductores) == 1
+    assert reproductores[0].proto.url.endswith(".mp3")
+    assert not reproductores[0].proto.autoplay  # D-03
+    assert not at.get("link_button")
+
+
+def test_sin_audio_se_muestra_el_aviso(monkeypatch):
+    """RF-19: el texto se muestra igual, con el aviso en lugar del reproductor."""
+    at = con_respuesta(monkeypatch, respuesta(audio=None, aviso_audio=MENSAJE_CUOTA_AUDIO))
+    assert not at.get("audio")
+    assert MENSAJE_CUOTA_AUDIO in htmls(at)
+    assert "SINPE Móvil al 8888-0000" in htmls(at)
+
+
+def test_modo_demo_muestra_el_aviso_de_demo_en_lugar_del_reproductor():
+    at = preguntar(abrir(), "¿A qué número hago el SINPE?")
+    assert not at.get("audio")
+    assert MENSAJE_AUDIO_DEMO in htmls(at)  # D-18
+    assert not at.get("link_button")
+
+
+def test_sin_informacion_boton_de_whatsapp_en_lugar_del_audio():
+    """D-15 (en modo demo, con la pregunta real fuera de la base)."""
+    at = preguntar(abrir(), "¿Venden ropa?")
+    assert not at.get("audio")
+    assert MENSAJE_AUDIO_DEMO not in htmls(at)
+    botones = at.get("link_button")
+    assert [b.proto.label for b in botones] == ["Escribir por WhatsApp"]
+    assert botones[0].proto.url.startswith("https://wa.me/50688880000?text=Hola")
+    assert "ropa" not in botones[0].proto.url  # la pregunta no viaja en el enlace
+
+
+def test_dos_partes_audio_y_boton_de_whatsapp(monkeypatch):
+    at = con_respuesta(monkeypatch, respuesta(aclaracion_pendiente=True))
+    assert len(at.get("audio")) == 1
+    assert len(at.get("link_button")) == 1
+

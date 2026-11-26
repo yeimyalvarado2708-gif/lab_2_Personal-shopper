@@ -3,14 +3,23 @@
 Ejecutar con:  streamlit run app.py
 
 T-25: estructura de la pantalla (D-12 a D-14) y pestaña **Preguntar**
-(RF-01, RF-08, RF-31, D-15). Las pestañas Estimar e Historial, el reproductor
-de audio, el banner de demo y el diseño final de los errores se agregan en
-T-26 a T-29.
+(RF-01, RF-08, RF-31, D-15).
+T-26: reproductor de audio sin reproducción automática (RF-09, D-03), aviso
+cuando no hay audio (RF-19, D-18) y botón de WhatsApp (D-15, RF-25).
+Las pestañas Estimar e Historial, el banner de demo y el diseño final de los
+errores se agregan en T-27 a T-29.
 
 Decisiones de Yeimy (2026-11-25, T-25):
 - Trato de "usted" en toda la app, también en el saludo.
 - La pestaña Preguntar muestra solo la última pregunta y su respuesta; las
   anteriores irán en la pestaña Historial (T-28).
+
+Decisiones de Yeimy (2026-11-25, T-26):
+- Reproductor nativo ``st.audio`` (widget de Streamlit, D-17), con
+  ``autoplay=False``.
+- Sin información suficiente no se genera audio; se muestra el botón de
+  WhatsApp, que abre el chat con un mensaje inicial (sin la pregunta).
+- Las respuestas con dos partes (RF-25) llevan audio y botón de WhatsApp.
 
 RF-31: mientras se procesa una pregunta, el botón Enviar, el campo y las
 preguntas rápidas quedan desactivados. El clic solo guarda la pregunta en
@@ -89,6 +98,18 @@ def avisar_faltantes_una_vez(_config) -> bool:
 
 # ---------- pantalla ----------
 
+def mostrar_respuesta(r: dict, base: dict) -> None:
+    """Burbuja con fuente y categoría, reproductor o aviso, y botón de WhatsApp."""
+    st.html(estilos.burbuja_respuesta(r["respuesta"], r["fuentes"], r["categoria"]))
+    if r.get("audio"):
+        st.audio(r["audio"], format="audio/mpeg", autoplay=False)  # D-03: no suena solo
+    elif r.get("aviso_audio"):
+        st.html(estilos.aviso_audio(r["aviso_audio"]))  # RF-19, D-18
+    if estilos.necesita_whatsapp(r):
+        enlace = estilos.enlace_whatsapp(demo.telefono_whatsapp(base), estilos.MENSAJE_WHATSAPP)
+        st.link_button(estilos.ETIQUETA_WHATSAPP, enlace, key="whatsapp", icon=":material/chat:")
+
+
 def pestana_preguntar(base: dict, config) -> None:
     procesando = st.session_state.procesando
     ultima = st.session_state.ultima
@@ -98,8 +119,7 @@ def pestana_preguntar(base: dict, config) -> None:
         if ultima["error"]:
             st.error(ultima["error"])  # diseño final de los errores en T-29
         else:
-            r = ultima["resultado"]
-            st.html(estilos.burbuja_respuesta(r["respuesta"], r["fuentes"], r["categoria"]))
+            mostrar_respuesta(ultima["resultado"], base)
     else:
         st.html(estilos.saludo())
 
