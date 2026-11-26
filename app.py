@@ -6,8 +6,10 @@ T-25: estructura de la pantalla (D-12 a D-14) y pestaña **Preguntar**
 (RF-01, RF-08, RF-31, D-15).
 T-26: reproductor de audio sin reproducción automática (RF-09, D-03), aviso
 cuando no hay audio (RF-19, D-18) y botón de WhatsApp (D-15, RF-25).
-Las pestañas Estimar e Historial, el banner de demo y el diseño final de los
-errores se agregan en T-27 a T-29.
+T-27: pestaña **Estimar** (RF-13 a RF-16, D-16): tarjetas de rango, monto,
+zona, primera compra y desglose con la leyenda, recalculado sin botón.
+La pestaña Historial, el banner de demo y el diseño final de los errores se
+agregan en T-28 y T-29.
 
 Decisiones de Yeimy (2026-11-25, T-25):
 - Trato de "usted" en toda la app, también en el saludo.
@@ -20,6 +22,13 @@ Decisiones de Yeimy (2026-11-25, T-26):
 - Sin información suficiente no se genera audio; se muestra el botón de
   WhatsApp, que abre el chat con un mensaje inicial (sin la pregunta).
 - Las respuestas con dos partes (RF-25) llevan audio y botón de WhatsApp.
+
+Decisiones de Yeimy (2026-11-25, T-27):
+- El monto es un campo de texto ("30000", "30.000" o "₡30.000"), validado
+  con ``validar_monto()`` (RF-16).
+- El formulario empieza vacío: sin monto no se muestra el desglose ni un error.
+- El monto se recalcula al presionar Enter o salir del campo; la zona y la
+  casilla, al instante.
 
 RF-31: mientras se procesa una pregunta, el botón Enviar, el campo y las
 preguntas rápidas quedan desactivados. El clic solo guarda la pregunta en
@@ -36,7 +45,14 @@ import streamlit as st
 from src import demo, estilos
 from src.asistente import responder
 from src.base_conocimiento import cargar_base
-from src.calculadora import MENSAJE_SIN_FECHA, hoy_costa_rica, proxima_fecha_compra
+from src.calculadora import (
+    MENSAJE_SIN_FECHA,
+    calcular_cuenta,
+    formatear_colones,
+    hoy_costa_rica,
+    proxima_fecha_compra,
+    zonas_para_formulario,
+)
 from src.config import cargar_config, registrar_faltantes
 from src.errores import ErrorAsistente, ErrorValidacion
 
@@ -141,6 +157,31 @@ def pestana_preguntar(base: dict, config) -> None:
         procesar(base, config)
 
 
+def pestana_estimar(base: dict) -> None:
+    """Calculadora de estimado (spec 4.3). No llama a ninguna API: funciona sin conexión."""
+    tarifas = base["tarifas"]
+    con_cargo = set(base["zonas_domicilio"]["con_cargo"])
+    entrega = formatear_colones(tarifas["entrega_domicilio_con_cargo"])
+
+    tarjetas = st.empty()  # se llena al final, ya con el rango aplicado
+    monto = st.text_input("Monto aproximado de sus productos", key="monto",
+                          placeholder="Por ejemplo: ₡30.000")
+    zona = st.selectbox("¿Dónde recibe?", zonas_para_formulario(base), key="zona",
+                        format_func=lambda z: f"{z} (+{entrega})" if z in con_cargo else z)
+    primera = st.checkbox("Es mi primera compra", key="primera_compra")
+
+    porcentaje = None
+    if monto.strip():  # vacío: sin desglose ni error (decisión de Yeimy)
+        try:
+            cuenta = calcular_cuenta(monto, zona, primera, base)
+        except ErrorValidacion as error:
+            st.caption(f":red[{error}]")  # RF-16: sin cálculo
+        else:
+            porcentaje = cuenta["porcentaje_servicio"]
+            st.html(estilos.desglose(cuenta))
+    tarjetas.html(estilos.tarjetas_de_rango(tarifas, porcentaje))
+
+
 def main() -> None:
     st.set_page_config(page_title="Tu Personal Shopper", page_icon="🛒", layout="centered")
     iniciar_estado()
@@ -166,7 +207,7 @@ def main() -> None:
     with preguntar:
         pestana_preguntar(base, config)
     with estimar:
-        st.html(estilos.proximamente())  # T-27
+        pestana_estimar(base)
     with historial:
         st.html(estilos.proximamente())  # T-28
 

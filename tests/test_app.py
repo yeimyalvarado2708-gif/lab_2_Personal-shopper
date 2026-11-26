@@ -10,6 +10,8 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from src import asistente, base_conocimiento
+from src.calculadora import ZONA_PUNTO_ENTREGA
+from src.validacion import MENSAJE_MONTO_INVALIDO
 from src.errores import (
     MENSAJE_AUDIO_DEMO,
     MENSAJE_CUOTA_AUDIO,
@@ -210,4 +212,104 @@ def test_dos_partes_audio_y_boton_de_whatsapp(monkeypatch):
     at = con_respuesta(monkeypatch, respuesta(aclaracion_pendiente=True))
     assert len(at.get("audio")) == 1
     assert len(at.get("link_button")) == 1
+
+
+# ---------- T-27: pestaña Estimar (RF-13 a RF-16, D-16) ----------
+
+def estimar(at, monto=None, zona=None, primera=None):
+    if monto is not None:
+        at.text_input(key="monto").input(monto)
+    if zona is not None:
+        at.selectbox(key="zona").select(zona)
+    if primera is not None:
+        at.checkbox(key="primera_compra").check() if primera else at.checkbox(key="primera_compra").uncheck()
+    return at.run()
+
+
+def avisos_rojos(at):
+    return [c.value for c in at.caption if c.value.startswith(":red[")]
+
+
+def test_estimar_empieza_vacio_sin_desglose_ni_error():
+    """Decisión de Yeimy: el formulario empieza vacío."""
+    at = abrir()
+    assert at.text_input(key="monto").value == ""
+    assert at.selectbox(key="zona").value == ZONA_PUNTO_ENTREGA
+    assert at.checkbox(key="primera_compra").value is False
+    assert "Total estimado" not in htmls(at)
+    assert not avisos_rojos(at)
+    assert "ps-activo" not in htmls(at)  # ninguna tarjeta resaltada
+
+
+def test_la_lista_de_zonas_es_una_sola_con_el_costo_en_el_nombre():
+    """RF-13 y D-16."""
+    at = abrir()
+    opciones = at.selectbox(key="zona").options
+    assert opciones[0] == ZONA_PUNTO_ENTREGA
+    assert "La Trocha (+₡2.000)" in opciones
+    assert "Pinares" in opciones or any(o.endswith("Pinares") for o in opciones)
+    assert not any("(+" in o for o in opciones if "Trocha" not in o and "Buenos Aires" not in o
+                   and "Jiménez" not in o and "La Granja" not in o)
+
+
+def test_caso_de_la_evidencia_30000_en_la_trocha():
+    at = estimar(abrir(), "₡30.000", "La Trocha")
+    pagina = htmls(at)
+    assert "Servicio (15%)" in pagina and "₡4.500" in pagina and "₡2.000" in pagina
+    assert "₡36.500" in pagina
+    assert "Este es un estimado." in pagina  # RF-15
+    assert pagina.count("ps-activo") == 1 and "15%" in pagina.split("ps-activo")[1][:400]
+
+
+@pytest.mark.parametrize("monto, zona, primera, total", [
+    ("10000", "Cuadrante", False, "₡12.000"),
+    ("15000", "Cuadrante", False, "₡17.250"),
+    ("30000", "La Trocha", False, "₡36.500"),
+    ("40000", "Cuadrante", False, "₡46.000"),
+    ("50000", "Cuadrante", False, "₡55.000"),
+    ("30000", "Cuadrante", True, "₡30.000"),
+    ("30000", "Buenos Aires", True, "₡30.000"),
+])
+def test_casos_de_referencia_de_la_seccion_53(monto, zona, primera, total):
+    at = estimar(abrir(), monto, zona, primera)
+    pagina = htmls(at)
+    assert f'class="ps-total-monto">{total}<' in pagina
+
+
+@pytest.mark.parametrize("monto", ["30000", "30.000", "₡30.000", "₡ 30.000"])
+def test_el_monto_acepta_varios_formatos(monto):
+    assert "₡36.500" in htmls(estimar(abrir(), monto, "La Trocha"))
+
+
+@pytest.mark.parametrize("monto", ["abc", "0", "-5", "₡"])
+def test_monto_invalido_muestra_el_mensaje_sin_calcular(monto):
+    """RF-16."""
+    at = estimar(abrir(), monto)
+    assert avisos_rojos(at) == [f":red[{MENSAJE_MONTO_INVALIDO}]"]
+    assert "Total estimado" not in htmls(at)
+    assert "ps-activo" not in htmls(at)
+
+
+def test_primera_compra_muestra_la_cortesia():
+    at = estimar(abrir(), "30000", "La Trocha", True)
+    pagina = htmls(at)
+    assert "Cortesía de bienvenida" in pagina
+    assert 'class="ps-total-monto">₡30.000<' in pagina
+
+
+def test_cambiar_la_zona_recalcula_sin_boton():
+    """D-16: sin botón Calcular."""
+    at = estimar(abrir(), "30000", "La Trocha")
+    assert "₡36.500" in htmls(at)
+    at = estimar(at, zona="Cuadrante")
+    assert 'class="ps-total-monto">₡34.500<' in htmls(at)
+    assert not any(b.label == "Calcular" for b in at.button)
+
+
+def test_la_calculadora_funciona_aunque_gemini_falle(monkeypatch):
+    """Spec 4.3: no llama a ninguna API."""
+    monkeypatch.setattr(asistente, "responder", lambda *a, **k: (_ for _ in ()).throw(ErrorConexion()))
+    at = preguntar(abrir(), "¿Cómo pago?")
+    at = estimar(at, "30000", "La Trocha")
+    assert "₡36.500" in htmls(at)
 

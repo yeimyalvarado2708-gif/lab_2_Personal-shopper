@@ -26,6 +26,7 @@ import re
 from datetime import date
 from urllib.parse import quote
 
+from src.calculadora import formatear_colones
 from src.demo import _DIAS, _MESES
 
 # Colores de D-12 (volante del emprendimiento). No se usan el logo ni la
@@ -45,6 +46,16 @@ SALUDO = "¿Necesita información de nuestro servicio?"  # decisión de Yeimy: "
 # ya escrito. No incluye la pregunta del cliente.
 MENSAJE_WHATSAPP = "Hola, tengo una consulta sobre el servicio de Personal Shopper."
 ETIQUETA_WHATSAPP = "Escribir por WhatsApp"
+
+# RF-15: leyenda fija del estimado.
+LEYENDA_ESTIMADO = (
+    "Este es un estimado. El total exacto se lo envío el jueves desde PriceSmart, "
+    "solo con los productos disponibles."
+)
+# Prototipo aprobado (D-16): aviso cuando se aplica la cortesía de primera compra.
+TEXTO_CORTESIA = "Cortesía de bienvenida: sin cargo de servicio ni entrega"
+# Colores de las tarjetas de rango, del menor al mayor monto (prototipo).
+COLORES_RANGO = (FUCSIA, VERDE, MORADO)
 
 CSS = f"""
 <style>
@@ -143,6 +154,24 @@ html, body, [class*="st-"], button, input, textarea {{
 }}
 .st-key-whatsapp a:hover {{ background: #1C7F33; color: #fff !important; }}
 .st-key-whatsapp a p {{ font-size: 14px; font-weight: 500; }}
+
+/* Pestaña Estimar (T-27, D-16) */
+.ps-rangos {{ display: flex; gap: 6px; }}
+.ps-rango {{ flex: 1; border-radius: 12px; padding: 6px 4px; text-align: center; border: 2px solid;
+  background: #fff; transition: transform .15s; }}
+.ps-rango p {{ margin: 0; font-weight: 700; }}
+.ps-rango .ps-rango-nombre {{ font-size: 11px; }}
+.ps-rango .ps-rango-porcentaje {{ font-size: 24px; line-height: 1.1; }}
+.ps-rango.ps-activo {{ transform: scale(1.06); }}
+.ps-rango.ps-activo p {{ color: #fff !important; }}
+.ps-desglose {{ background: {CELESTE}; border-radius: 14px; padding: 10px 14px; }}
+.ps-fila {{ display: flex; justify-content: space-between; font-size: 15px; padding: 2px 0; }}
+.ps-separador {{ border-top: 2px dashed #B8C9E3; margin: 6px 0; }}
+.ps-total {{ display: flex; justify-content: space-between; align-items: baseline; color: {AZUL}; }}
+.ps-total .ps-script {{ font-size: 20px; }}
+.ps-total .ps-total-monto {{ font-size: 28px; font-weight: 700; }}
+.ps-cortesia {{ margin: 4px 0 0; font-size: 13px; color: {VERDE}; font-weight: 500; }}
+.ps-leyenda {{ margin: 6px 0 0; font-size: 12px; color: {GRIS}; line-height: 1.4; }}
 
 .ps-pronto {{ font-size: 15px; color: {GRIS}; text-align: center; margin: 6px 0; }}
 </style>
@@ -264,3 +293,62 @@ def pie(telefono: str) -> str:
 
 def proximamente() -> str:
     return '<p class="ps-pronto">Disponible pronto.</p>'
+
+
+# ---------- pestaña Estimar (T-27) ----------
+
+def nombres_de_rangos(tarifas: dict) -> list[str]:
+    """Nombres de las tarjetas, armados con ``tarifas.rangos_servicio`` (no fijos en el código).
+
+    Con las tarifas actuales: "Menos de ₡15.000", "₡15.000 a ₡40.000", "Más de ₡40.000".
+    """
+    rangos = tarifas["rangos_servicio"]
+    nombres = []
+    for i, rango in enumerate(rangos):
+        if not rango.get("desde"):  # el primero: hasta el inicio del siguiente
+            nombres.append(f"Menos de {formatear_colones(rangos[i + 1]['desde'])}")
+        elif rango.get("hasta") is None:  # el último: desde el final del anterior
+            nombres.append(f"Más de {formatear_colones(rangos[i - 1]['hasta'])}")
+        else:
+            nombres.append(f"{formatear_colones(rango['desde'])} a {formatear_colones(rango['hasta'])}")
+    return nombres
+
+
+def tarjetas_de_rango(tarifas: dict, porcentaje_activo: int | None) -> str:
+    """Tres tarjetas de rango (D-16); la del rango aplicado se resalta en su color."""
+    tarjetas = []
+    rangos = tarifas["rangos_servicio"]
+    for i, (rango, nombre) in enumerate(zip(rangos, nombres_de_rangos(tarifas))):
+        color = COLORES_RANGO[i % len(COLORES_RANGO)]
+        activo = rango["porcentaje"] == porcentaje_activo
+        clase = "ps-rango ps-activo" if activo else "ps-rango"
+        fondo = color if activo else "#fff"
+        tarjetas.append(
+            f'<div class="{clase}" style="border-color:{color};background:{fondo};color:{color};">'
+            f'<p class="ps-rango-nombre">{_e(nombre.upper())}</p>'
+            f'<p class="ps-rango-porcentaje">{_e(rango["porcentaje"])}%</p></div>'
+        )
+    return f'<div class="ps-rangos">{"".join(tarjetas)}</div>'
+
+
+def desglose(cuenta: dict) -> str:
+    """Desglose de RF-15 con la leyenda, a partir de ``calcular_cuenta()``."""
+    filas = (
+        ("Productos", cuenta["monto_productos"]),
+        (f"Servicio ({cuenta['porcentaje_servicio']}%)", cuenta["cargo_servicio"]),
+        ("Entrega", cuenta["costo_entrega"]),
+    )
+    html_filas = "".join(
+        f'<div class="ps-fila"><span>{_e(nombre)}</span><span>{_e(formatear_colones(valor))}</span></div>'
+        for nombre, valor in filas
+    )
+    cortesia = (f'<p class="ps-cortesia">🎁 {_e(TEXTO_CORTESIA)}</p>'
+                if cuenta["cortesia_aplicada"] else "")
+    return (
+        f'<div class="ps-desglose">{html_filas}<div class="ps-separador"></div>'
+        '<div class="ps-total"><span class="ps-script">Total estimado</span>'
+        f'<span class="ps-total-monto">{_e(formatear_colones(cuenta["total_estimado"]))}</span></div>'
+        f"{cortesia}</div>"
+        f'<p class="ps-leyenda">{_e(LEYENDA_ESTIMADO)}</p>'
+    )
+

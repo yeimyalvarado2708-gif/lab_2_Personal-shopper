@@ -1,11 +1,13 @@
 """Pruebas de T-25: src/estilos.py (D-12 a D-15, D-17)."""
 
+import re
 from datetime import date
 
 import pytest
 
 from src import estilos
-from src.calculadora import MENSAJE_SIN_FECHA
+from src.base_conocimiento import cargar_base
+from src.calculadora import MENSAJE_SIN_FECHA, calcular_cuenta
 
 ATAQUE = '<script>alert("x")</script><img src=x onerror=alert(1)>'
 FECHAS = {"proxima_compra": "2026-11-26", "fecha_limite_lista": "2026-11-25"}
@@ -124,3 +126,55 @@ def test_cuando_se_muestra_el_boton_de_whatsapp(suficiente, aclaracion, esperado
     resultado = {"informacion_suficiente": suficiente, "aclaracion_pendiente": aclaracion}
     assert estilos.necesita_whatsapp(resultado) is esperado
 
+
+
+# ---------- T-27: pestaña Estimar ----------
+
+BASE = cargar_base()
+TARIFAS = BASE["tarifas"]
+
+
+def test_nombres_de_rangos_salen_de_tarifas():
+    assert estilos.nombres_de_rangos(TARIFAS) == [
+        "Menos de ₡15.000", "₡15.000 a ₡40.000", "Más de ₡40.000"]
+
+
+def test_nombres_de_rangos_cambian_si_cambian_las_tarifas():
+    otras = {"rangos_servicio": [
+        {"desde": 0, "hasta": 9999.99, "porcentaje": 25},
+        {"desde": 10000, "hasta": 50000, "porcentaje": 12},
+        {"desde": 50000.01, "hasta": None, "porcentaje": 8}]}
+    assert estilos.nombres_de_rangos(otras) == ["Menos de ₡10.000", "₡10.000 a ₡50.000", "Más de ₡50.000"]
+    html = estilos.tarjetas_de_rango(otras, 12)
+    assert "25%" in html and "12%" in html and "8%" in html
+
+
+@pytest.mark.parametrize("porcentaje, activa", [(20, 0), (15, 1), (10, 2), (None, None)])
+def test_solo_se_resalta_la_tarjeta_del_rango_aplicado(porcentaje, activa):
+    html = estilos.tarjetas_de_rango(TARIFAS, porcentaje)
+    tarjetas = re.findall(r'<div class="ps-rango( ps-activo)?"', html)
+    assert len(tarjetas) == 3
+    for i, tarjeta in enumerate(tarjetas):
+        assert bool(tarjeta) is (i == activa)
+
+
+def test_desglose_del_caso_de_referencia():
+    cuenta = calcular_cuenta(30000, "La Trocha", False, BASE)
+    html = estilos.desglose(cuenta)
+    for texto in ("Productos", "₡30.000", "Servicio (15%)", "₡4.500", "Entrega", "₡2.000",
+                  "Total estimado", "₡36.500", estilos.LEYENDA_ESTIMADO):
+        assert texto in html
+    assert estilos.TEXTO_CORTESIA not in html
+
+
+def test_desglose_con_cortesia_de_primera_compra():
+    cuenta = calcular_cuenta(30000, "Buenos Aires", True, BASE)
+    html = estilos.desglose(cuenta)
+    assert "₡30.000</span></div></div>" not in html  # el total sigue dentro del desglose
+    assert estilos.TEXTO_CORTESIA in html
+    assert html.count("₡0") == 2  # servicio y entrega
+
+
+def test_la_leyenda_es_la_de_rf15():
+    assert estilos.LEYENDA_ESTIMADO == ("Este es un estimado. El total exacto se lo envío el jueves "
+                                        "desde PriceSmart, solo con los productos disponibles.")
