@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipo de interfaz · Personal Shopper</title>
+<!--
+  Prototipo visual aprobado por Yeimy el 2026-11-25 (spec.md, decisiones D-12 a D-18).
+  Es solo una REFERENCIA DE DISEÑO: los datos y la lógica de este archivo son de ejemplo.
+  En la app real (app.py, Streamlit) las respuestas salen de asistente.responder(),
+  el estimado de calculadora.calcular_cuenta(), las fechas de proxima_fecha_compra()
+  y los barrios de data/base_conocimiento.json. El audio aquí es simulado.
+  En modo demo la app real no genera audio (RF-20); el botón Escuchar se muestra
+  aquí solo para ver su diseño.
+  Números de WhatsApp y SINPE ficticios (RNF-03).
+-->
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Baloo+2:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
+<style>
+body{margin:0;background:#EAF4FD;padding:16px}
+.ps{--navy:#173C8F;--navyDark:#0B2463;--pink:#D81B6A;--green:#239B3E;--purple:#6A2C9E;--yellow:#F9D423;--sky:#EAF4FD;font-family:'Baloo 2',sans-serif;color:#1F2A44}
+.ps .script{font-family:'Kalam',cursive;font-weight:700}
+.ps-tab{flex:1;border:1.5px solid #D5E2F3;background:#fff;padding:6px 4px;border-radius:999px;font:500 14px 'Baloo 2';color:#7A86A0;cursor:pointer;transition:background .15s,color .15s}
+.ps-tab:hover{background:#DCEAFB;color:var(--navy)}
+.ps-tab.on{background:var(--navyDark);border-color:var(--navyDark);color:#fff;font-weight:700}
+.ps-tab .cnt{display:inline-block;min-width:18px;font-size:11px;border-radius:999px;padding:0 5px;background:#E3EAF5;color:#5B6680}
+.ps-tab.on .cnt{background:var(--yellow);color:var(--navyDark)}
+.ps-chip{border:1.5px solid var(--navy);color:var(--navy);border-radius:999px;padding:2px 12px;font:500 13px 'Baloo 2';background:#fff;cursor:pointer}
+.ps-chip:hover{background:var(--sky)}
+.ps-tier{flex:1;border-radius:12px;padding:6px 4px;text-align:center;border:2px solid;background:#fff;transition:transform .15s}
+.ps-tier.on{transform:scale(1.06)}
+.ps-row{display:flex;justify-content:space-between;font-size:15px;padding:2px 0}
+.ps input[type=text],.ps select{font-family:'Baloo 2';font-size:15px;color:#1F2A44;background:#fff;border:1.5px solid #C9D6EA;border-radius:8px;height:36px;padding:0 10px;box-sizing:border-box}
+.ps button{font-family:'Baloo 2'}
+</style>
+</head>
+<body>
+<div class="ps">
+<div style="max-width:440px;margin:0 auto;background:#fff;border-radius:20px;overflow:hidden;border:1px solid #D5E2F3;">
+<div style="background:var(--navy);padding:14px 16px 12px;">
+<div style="display:flex;align-items:center;justify-content:space-between;">
+<div><p class="script" style="margin:0;color:#fff;font-size:26px;line-height:1.1;">Tu Personal Shopper</p>
+<p style="margin:0;color:#fff;font-size:13px;"><span style="background:var(--yellow);color:var(--navy);padding:0 6px;border-radius:4px;font-weight:700;">Ahorre tiempo y dinero</span> · Guápiles y alrededores</p></div>
+<span style="font-size:11px;background:var(--yellow);color:var(--navy);padding:2px 8px;border-radius:999px;font-weight:700;">DEMO</span>
+</div>
+<div style="height:3px;width:120px;background:var(--pink);border-radius:2px;margin-top:6px;"></div>
+</div>
+<div style="background:#FFF6CC;color:#6B5200;font-size:12px;padding:4px 16px;"><i class="ti ti-flask"></i> Modo demostración: las respuestas son simuladas.</div>
+<div style="padding:12px 14px 14px;">
+<div style="display:flex;align-items:center;gap:10px;background:var(--yellow);border-radius:14px;padding:8px 12px;margin-bottom:12px;color:var(--navy);">
+<i class="ti ti-calendar-event" style="font-size:24px"></i>
+<div style="flex:1;line-height:1.25;"><p style="margin:0;font-weight:700;font-size:15px;">Próxima compra: jueves 26 nov</p><p style="margin:0;font-size:13px;">Envíe su lista hasta hoy, miércoles 25</p></div>
+<span style="font-size:11px;background:var(--pink);color:#fff;padding:2px 8px;border-radius:999px;font-weight:700;">¡Cierra hoy!</span>
+</div>
+<div role="tablist" style="display:flex;gap:6px;margin-bottom:12px;">
+<button class="ps-tab on" role="tab" data-t="p"><i class="ti ti-message-circle"></i> Preguntar</button>
+<button class="ps-tab" role="tab" data-t="e"><i class="ti ti-calculator"></i> Estimar</button>
+<button class="ps-tab" role="tab" data-t="h"><i class="ti ti-history"></i> Historial <span class="cnt" id="hCount">0</span></button>
+</div>
+
+<div id="pane-p">
+<p id="empty" class="script" style="text-align:center;margin:4px 0 10px;font-size:20px;color:var(--navy);line-height:1.3;">¿Necesitas información de nuestro servicio?</p>
+<div id="answer" style="display:none;margin-bottom:10px;">
+<div style="display:flex;justify-content:flex-end;margin-bottom:6px;"><span id="qBubble" style="background:var(--navy);color:#fff;border-radius:16px 16px 4px 16px;padding:5px 12px;font-size:15px;max-width:85%;"></span></div>
+<div style="background:var(--sky);border-radius:16px 16px 16px 4px;padding:10px 12px;">
+<p id="aText" style="margin:0 0 6px;font-size:15px;line-height:1.5;"></p>
+<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+<span id="aSrc" style="font-size:11px;background:#fff;color:var(--navy);border:1px solid var(--navy);padding:0 8px;border-radius:999px;"></span>
+<span id="aCat" style="font-size:11px;background:var(--purple);color:#fff;padding:0 8px;border-radius:999px;"></span>
+<span style="flex:1"></span>
+<button id="play" style="border:none;background:var(--pink);color:#fff;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:500;cursor:pointer;"><i class="ti ti-player-play"></i> Escuchar</button>
+</div>
+<div id="bar" style="height:4px;background:#fff;border-radius:2px;margin-top:8px;overflow:hidden;display:none;"><div id="barIn" style="height:100%;width:0;background:var(--pink);"></div></div>
+<a id="wa" href="https://wa.me/50688880000" style="display:none;margin-top:8px;background:var(--green);color:#fff;text-decoration:none;padding:4px 12px;border-radius:999px;font-size:14px;font-weight:500;"><i class="ti ti-brand-whatsapp"></i> Escribir por WhatsApp</a>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+<button class="ps-chip" data-q="¿Cuánto cobran?">¿Cuánto cobran?</button>
+<button class="ps-chip" data-q="¿A qué número hago el SINPE?">¿Número de SINPE?</button>
+<button class="ps-chip" data-q="¿Cuándo es la próxima compra?">¿Próxima compra?</button>
+</div>
+<div style="display:flex;gap:6px;"><input id="q" type="text" placeholder="Escriba su pregunta…" style="flex:1;border-radius:999px;padding:0 14px;"/><button id="send" aria-label="Enviar" style="background:var(--pink);color:#fff;border:none;width:40px;height:36px;border-radius:50%;cursor:pointer;"><i class="ti ti-send"></i></button></div>
+<p id="qErr" style="margin:4px 0 0;font-size:13px;color:var(--pink);display:none;">Escriba una pregunta antes de enviar.</p>
+</div>
+
+<div id="pane-e">
+<div style="display:flex;gap:6px;margin-bottom:12px;">
+<div class="ps-tier" id="t20" style="border-color:var(--pink);"><p style="margin:0;font-size:11px;font-weight:700;">MENOS DE ₡15.000</p><p style="margin:0;font-size:24px;font-weight:700;line-height:1.1;">20%</p></div>
+<div class="ps-tier" id="t15" style="border-color:var(--green);"><p style="margin:0;font-size:11px;font-weight:700;">₡15.000 A ₡40.000</p><p style="margin:0;font-size:24px;font-weight:700;line-height:1.1;">15%</p></div>
+<div class="ps-tier" id="t10" style="border-color:var(--purple);"><p style="margin:0;font-size:11px;font-weight:700;">MÁS DE ₡40.000</p><p style="margin:0;font-size:24px;font-weight:700;line-height:1.1;">10%</p></div>
+</div>
+<label style="font-size:13px;color:var(--navy);font-weight:500;">Monto aproximado de sus productos</label>
+<input id="monto" type="text" value="₡30.000" inputmode="numeric" style="width:100%;margin:2px 0;font-size:17px;"/>
+<p id="mErr" style="margin:0 0 4px;font-size:13px;color:var(--pink);display:none;">Ingrese un monto válido mayor a cero.</p>
+<label for="zona" style="display:block;margin:6px 0 2px;font-size:13px;color:var(--navy);font-weight:500;">¿Dónde recibe?</label>
+<select id="zona" style="width:100%;margin-bottom:8px;"></select>
+<label style="display:flex;align-items:center;justify-content:space-between;font-size:15px;margin-bottom:10px;color:var(--navy);">Es mi primera compra <input id="primera" type="checkbox" style="accent-color:var(--pink);width:18px;height:18px;"/></label>
+<div style="background:var(--sky);border-radius:14px;padding:10px 14px;">
+<div class="ps-row"><span>Productos</span><span id="rP"></span></div>
+<div class="ps-row"><span id="rPctL">Servicio</span><span id="rS"></span></div>
+<div class="ps-row"><span>Entrega</span><span id="rE"></span></div>
+<div style="border-top:2px dashed #B8C9E3;margin:6px 0;"></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;color:var(--navy);"><span class="script" style="font-size:20px;">Total estimado</span><span id="rT" style="font-size:28px;font-weight:700;"></span></div>
+<p id="rGift" style="display:none;margin:4px 0 0;font-size:13px;color:var(--green);font-weight:500;"><i class="ti ti-gift"></i> Cortesía de bienvenida: sin cargo de servicio ni entrega</p>
+</div>
+<p style="margin:6px 0 0;font-size:12px;color:#5B6680;line-height:1.4;">Este es un estimado. El total exacto se lo envío el jueves desde PriceSmart, solo con los productos disponibles.</p>
+</div>
+
+<div id="pane-h">
+<p id="hEmpty" style="font-size:15px;color:#5B6680;text-align:center;margin:6px 0;">Sus preguntas de esta sesión aparecerán aquí.</p>
+<div id="hList"></div>
+<p style="margin:6px 0 0;font-size:12px;color:#5B6680;">Se borra al cerrar o recargar la página.</p>
+</div>
+</div>
+<div style="background:var(--navy);display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;">
+<i class="ti ti-shopping-cart" style="font-size:22px;color:#fff"></i>
+<span class="script" style="color:#fff;font-size:22px;">¡Yo te lo compro!</span>
+<a href="https://wa.me/50688880000" style="background:var(--green);color:#fff;text-decoration:none;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:500;"><i class="ti ti-brand-whatsapp"></i> 8888-0000</a>
+</div>
+</div>
+</div>
+<script>
+const CENTRO="Punto de entrega en el centro de Guápiles";
+const SIN=["Cuadrante","Barrio Santa Cecilia","Barrio Coopevigua Uno","Barrio Coopevigua Dos","Barrio Coopevigua Tres","Barrio Los Diamantes","Barrio Pinares","La Emilia","Barrio Los Ángeles","Urbanización Toro Amarillo","Barrio Las Brisas","Garabito","Barrio Cacique","Las Salsas","Barrio Jesús","Urbanización Palma Dorada","Barrio San Miguel","Barrio Las Palmas","La Floresta","La Urba","Los Laureles","San Francisco","La Casona"];
+const CON=["La Trocha","Buenos Aires","Jiménez","La Granja"];
+const NOINFO="No tengo esa información. Escríbanos por WhatsApp al 8888-0000 y con gusto le ayudamos.";
+const KB=[
+{k:["cobra","tarifa","porcentaje"],t:"El cargo es un porcentaje sobre la factura de PriceSmart: 20% si es menor a ₡15.000; 15% entre ₡15.000 y ₡40.000; 10% si es mayor a ₡40.000.",s:"FAQ-02",c:"Tarifas"},
+{k:["sinpe","numero","pago","deposit"],t:"Puede hacer el SINPE Móvil al número 8888-0000.",s:"FAQ-14",c:"Pagos"},
+{k:["pinares","barrio","domicilio","entregan"],t:"Sí, entrego a domicilio sin costo en Pinares y en otros 22 barrios de Guápiles.",s:"FAQ-06",c:"Entregas"},
+{k:["proxima","cuando","jueves"],t:"La próxima compra es el jueves 26 de noviembre. Puede enviar su lista hasta el miércoles 25.",s:"CALENDARIO",c:"Fechas"}];
+const $=id=>document.getElementById(id);
+const fmt=n=>"₡"+Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+let hist=[];
+function tab(t){document.querySelectorAll(".ps-tab").forEach(b=>{const on=b.dataset.t===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on);});["p","e","h"].forEach(x=>$("pane-"+x).style.display=x===t?"block":"none");}
+document.querySelectorAll(".ps-tab").forEach(b=>b.onclick=()=>tab(b.dataset.t));
+tab("p");
+const opt=(v,l)=>`<option value="${v}">${l}</option>`;
+$("zona").innerHTML=opt("centro",CENTRO)+`<optgroup label="Entrega a domicilio sin costo">`+SIN.map(n=>opt("sin|"+n,n)).join("")+`</optgroup><optgroup label="Entrega a domicilio con cargo de ₡2.000">`+CON.map(n=>opt("con|"+n,n+" (+₡2.000)")).join("")+`</optgroup>`;
+$("zona").value="con|La Trocha";
+const TC={20:"#D81B6A",15:"#239B3E",10:"#6A2C9E"};
+function calc(){
+ const raw=$("monto").value.replace(/[₡\s]/g,"").replace(/\./g,"").replace(",",".");
+ const m=parseFloat(raw);
+ ["20","15","10"].forEach(p=>{const t=$("t"+p);t.classList.remove("on");t.style.background="#fff";t.querySelectorAll("p").forEach(x=>x.style.color=TC[p]);});
+ if(!/^\d+(\.\d+)?$/.test(raw)||!(m>0)){$("mErr").style.display="block";["rP","rS","rE","rT"].forEach(i=>$(i).textContent="—");$("rGift").style.display="none";return;}
+ $("mErr").style.display="none";
+ const pct=m<15000?20:(m<=40000?15:10), pri=$("primera").checked, con=$("zona").value.startsWith("con|");
+ const t=$("t"+pct); t.classList.add("on"); t.style.background=TC[pct]; t.querySelectorAll("p").forEach(p=>p.style.color="#fff");
+ const serv=pri?0:m*pct/100, ent=(con&&!pri)?2000:0;
+ $("rP").textContent=fmt(m); $("rPctL").textContent="Servicio ("+pct+"%)"; $("rS").textContent=fmt(serv); $("rE").textContent=fmt(ent); $("rT").textContent=fmt(m+serv+ent);
+ $("rGift").style.display=pri?"block":"none";
+}
+$("monto").addEventListener("input",calc); $("primera").addEventListener("change",calc); $("zona").addEventListener("change",calc);
+calc();
+function ask(q){
+ q=q.trim(); if(!q){$("qErr").style.display="block";return;}
+ $("qErr").style.display="none"; $("send").disabled=true;
+ $("empty").style.display="none"; $("answer").style.display="block"; $("qBubble").textContent=q;
+ $("aText").textContent="Buscando la respuesta…"; ["aSrc","aCat","play","wa","bar"].forEach(i=>$(i).style.display="none");
+ setTimeout(()=>{
+  const n=norm(q), hit=KB.find(f=>f.k.some(k=>n.includes(k)));
+  const r=hit||{t:NOINFO,s:null,c:"Sin información"};
+  $("aText").textContent=r.t; $("aCat").textContent=r.c; $("aCat").style.display="inline";
+  if(r.s){$("aSrc").textContent="Fuente: "+r.s;$("aSrc").style.display="inline";$("play").style.display="inline-block";} else $("wa").style.display="inline-block";
+  $("send").disabled=false; $("q").value="";
+  const d=new Date(); hist.unshift({q,a:r.t,s:r.s||"—",c:r.c,h:d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")}); renderH();
+ },700);
+}
+$("send").onclick=()=>ask($("q").value);
+$("q").addEventListener("keydown",e=>{if(e.key==="Enter")ask($("q").value);});
+document.querySelectorAll(".ps-chip").forEach(c=>c.onclick=()=>ask(c.dataset.q));
+let timer=null;
+const playHTML='<i class="ti ti-player-play"></i> Escuchar';
+$("play").onclick=()=>{
+ if(timer){clearInterval(timer);timer=null;$("play").innerHTML=playHTML;return;}
+ $("bar").style.display="block"; let w=0;
+ $("play").innerHTML='<i class="ti ti-player-pause"></i> Pausa';
+ timer=setInterval(()=>{w+=5;$("barIn").style.width=w+"%";if(w>=100){clearInterval(timer);timer=null;$("play").innerHTML=playHTML;}},150);
+};
+function renderH(){
+ $("hCount").textContent=hist.length; $("hEmpty").style.display=hist.length?"none":"block";
+ $("hList").innerHTML=hist.map(()=>`<div style="border-bottom:1px dashed #C9D6EA;padding:6px 0;"><div style="display:flex;justify-content:space-between;font-size:12px;color:#5B6680;"><span></span><span></span></div><p style="margin:0;font-size:15px;font-weight:700;color:#173C8F;"></p><p style="margin:0;font-size:14px;color:#1F2A44;"></p></div>`).join("");
+ const rows=$("hList").children;
+ hist.forEach((x,i)=>{const meta=rows[i].children[0].children;meta[0].textContent=x.h;meta[1].textContent=x.c+" · "+x.s;rows[i].children[1].textContent=x.q;rows[i].children[2].textContent=x.a;});
+}
+</script>
+</body>
+</html>
