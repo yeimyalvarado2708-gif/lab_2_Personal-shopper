@@ -186,6 +186,7 @@ def main() -> None:
     st.set_page_config(page_title="Tu Personal Shopper", page_icon="🛒", layout="centered")
     iniciar_estado()
     st.html(estilos.CSS)
+    st.html(estilos.SCRIPT_IDIOMA, unsafe_allow_javascript=True)  # página en español, sin traducir
     st.html(estilos.encabezado())
 
     try:

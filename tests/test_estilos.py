@@ -178,3 +178,19 @@ def test_desglose_con_cortesia_de_primera_compra():
 def test_la_leyenda_es_la_de_rf15():
     assert estilos.LEYENDA_ESTIMADO == ("Este es un estimado. El total exacto se lo envío el jueves "
                                         "desde PriceSmart, solo con los productos disponibles.")
+
+
+# ---------- ajuste de T-27: página en español, sin traducción automática ----------
+
+def test_el_script_marca_la_pagina_en_espanol_y_sin_traduccion():
+    script = estilos.SCRIPT_IDIOMA
+    assert 'raiz.lang = "es"' in script
+    assert 'setAttribute("translate", "no")' in script
+    assert '"notranslate"' in script
+
+
+def test_el_script_no_toca_textos_del_cliente():
+    """Única excepción a D-17: solo cambia el idioma del documento."""
+    script = estilos.SCRIPT_IDIOMA
+    for prohibido in ("innerHTML", "innerText", "textContent", "fetch", "localStorage", "eval"):
+        assert prohibido not in script

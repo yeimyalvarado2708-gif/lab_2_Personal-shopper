@@ -57,6 +57,29 @@ TEXTO_CORTESIA = "Cortesía de bienvenida: sin cargo de servicio ni entrega"
 # Colores de las tarjetas de rango, del menor al mayor monto (prototipo).
 COLORES_RANGO = (FUCSIA, VERDE, MORADO)
 
+# Decisión de Yeimy (ajuste de T-27): Streamlit marca la página como inglés
+# (<html lang="en">) y Chrome la "traduce" al español, cambiando textos
+# ("cargo" → "carga", montos sin ₡). Este script marca la página en español y
+# le pide a Google que no la traduzca. Es la única excepción a D-17: no toca
+# textos del cliente ni de Gemini, solo el idioma del documento.
+SCRIPT_IDIOMA = """
+<script>
+(function () {
+  var doc = window.parent && window.parent.document ? window.parent.document : document;
+  var raiz = doc.documentElement;
+  raiz.lang = "es";
+  raiz.setAttribute("translate", "no");
+  raiz.classList.add("notranslate");
+  if (!doc.querySelector('meta[name="google"]')) {
+    var meta = doc.createElement("meta");
+    meta.name = "google";
+    meta.content = "notranslate";
+    doc.head.appendChild(meta);
+  }
+})();
+</script>
+"""
+
 CSS = f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Baloo+2:wght@400;500;700&display=swap');
@@ -64,6 +87,9 @@ CSS = f"""
 html, body, [class*="st-"], button, input, textarea {{
   font-family: 'Baloo 2', sans-serif;
 }}
+/* El contenedor del script de idioma no ocupa lugar (si no, deja una franja sobre el encabezado) */
+[data-testid="stElementContainer"]:has(> [data-testid="stHtml"] > script:only-child),
+.stElementContainer:has(> [data-testid="stHtml"] > script:only-child) {{ display: none; }}
 /* Los íconos de Streamlit conservan su propia fuente (si no, se ve la palabra "chat") */
 [data-testid="stIconMaterial"] {{ font-family: 'Material Symbols Rounded' !important; }}
 /* Página celeste y la app en una tarjeta blanca, como el prototipo (ajuste de T-25) */

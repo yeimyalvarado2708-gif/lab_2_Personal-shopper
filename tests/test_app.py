@@ -313,3 +313,9 @@ def test_la_calculadora_funciona_aunque_gemini_falle(monkeypatch):
     at = estimar(at, "30000", "La Trocha")
     assert "₡36.500" in htmls(at)
 
+
+
+def test_la_app_inserta_el_script_de_idioma():
+    """Ajuste de T-27: Chrome no debe traducir la página (cambiaba "cargo" por "carga")."""
+    at = abrir()
+    assert any('raiz.lang = "es"' in h.proto.body for h in at.html)
