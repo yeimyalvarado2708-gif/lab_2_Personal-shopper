@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha de inicio:** 2026-11-23
-**Versión:** 1.39
+**Versión:** 1.40
 **Documentos relacionados:** `intent.md` v1.0 · `spec.md` v1.15 · `data/base_conocimiento.json` v1.4 · `tests/preguntas_evaluacion.json` v1.0
 
 ---
@@ -101,7 +101,7 @@
 
 | ID | Tarea | Responsable | Estado | Evidencia de terminación |
 |---|---|---|---|---|
-| T-35 | `README.md`: instalación, configuración de `.env`, ejecución, modo demo y limitaciones (sección 13 del spec). | Claude Code + Yeimy | ⬜ | README revisado: alguien puede instalar la app siguiéndolo paso a paso. |
+| T-35 | `README.md`: instalación, configuración de `.env`, ejecución, modo demo y limitaciones (sección 13 del spec). | Claude Code + Yeimy | 🔄 En curso | 2026-11-26: `README.md` escrito: requisitos, instalación (con Windows aparte), configuración de `.env` con cada variable y cómo obtenerla (permisos mínimos de ElevenLabs y voz prediseñada), revisión con `python -m src.config` (solo dice "configurada", sin claves; verificado), ejecución y pestañas, aviso de la Terminal de VS Code que carga el `.env` (hallazgo de T-26) y del reinicio de Streamlit (T-25), modo demo, pruebas y evaluación, limitaciones de la sección 13 del spec (ElevenLabs gratuito solo uso personal y no comercial, condiciones de Gemini, números ficticios, máximo 400 caracteres, cómo activar `MODO_DEMO`) más el resultado de la evaluación (4 de 5 y C-06) y estructura del proyecto. **Pendiente:** revisión de Yeimy e instalación de prueba siguiendo el README paso a paso. |
 | T-36 | Video o capturas que muestren el texto generado, el audio y el manejo de un error. | Yeimy | ⬜ | Archivo de video o capturas en `evidencias/`, sin claves visibles. |
 | T-37 | Completar el registro de iteraciones (mínimo 3 ciclos de código). | Yeimy | ⬜ | Sección 5.2 con al menos C-01 a C-03 completos. |
 | T-38 | Reflexión de 250 a 400 palabras: decisiones humanas, limitaciones del modelo, seguridad y aprendizajes. | Yeimy | ⬜ | Archivo `reflexion.md`, con el conteo de palabras. |
@@ -273,3 +273,4 @@ Se completa en la tarea T-34.
 | 2026-11-26 | 1.37 | Ciclo C-05: la evaluación se detiene antes de llamar a Gemini si ya existe la del día. |
 | 2026-11-26 | 1.38 | T-34 en curso: revisión final y sección 7 completa (14 de 15 criterios; EV-24 no cumple). |
 | 2026-11-26 | 1.39 | Ciclo C-06: mensaje fijo para precios y marcas de productos; EV-24 pasa en la reevaluación; referencia a `spec.md` v1.15. T-34 completada: revisión final, sección 7 completa y privacidad del historial verificada a mano. |
+| 2026-11-26 | 1.40 | T-35 en curso: `README.md` escrito; falta la revisión y la instalación de prueba. |
