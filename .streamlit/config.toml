@@ -1,0 +1,13 @@
+# Colores base del tema (D-12). El resto del diseño está en src/estilos.py.
+[theme]
+base = "light"
+primaryColor = "#D81B6A"
+backgroundColor = "#EAF4FD"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1F2A44"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
