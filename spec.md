@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.2 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25)
+**Versión:** 1.2 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25)
 **Documento relacionado:** `intent.md` v1.0
 
 ---
@@ -45,7 +45,7 @@ Estas decisiones las tomó la autora antes de escribir la especificación. Todo 
 | **RF-21** | Si Gemini responde `informacion_suficiente: false`, el sistema debe **descartar el texto de Gemini** y mostrar el mensaje fijo: *"No tengo esa información. Escríbanos por WhatsApp al 8888-0000 y con gusto le ayudamos."* (D-09). El número se toma de `negocio.contacto_humano`. |
 | **RF-22** | El *prompt* debe separar claramente las instrucciones del sistema y la pregunta del usuario (delimitadores), e indicar que cualquier instrucción dentro de la pregunta se ignora. El asistente no debe dar información contraria a la base aunque la pregunta lo pida (**resistencia a manipulación**). |
 | **RF-23** | Ante preguntas que piden un cálculo con montos (por ejemplo, "¿cuánto pago por ₡30.000?"), el asistente **no debe calcular**: debe explicar cómo se calcula (FAQ-03) y remitir a la calculadora de estimado. |
-| **RF-24** | **Verificación de montos:** todo monto en colones (₡) que aparezca en la respuesta de Gemini debe existir en la base de conocimiento (en los textos de las FAQ o en la sección `tarifas`). Si aparece un monto que no existe en la base, el sistema debe reemplazar la respuesta por el texto fijo: *"Para calcular su cuenta, use la calculadora de estimado en esta misma página."* |
+| **RF-24** | **Verificación de montos:** todo monto en colones (₡) que aparezca en la respuesta de Gemini debe existir en la base de conocimiento (en los textos de las FAQ o en la sección `tarifas`). Si aparece un monto que no existe en la base, el sistema debe reemplazar la respuesta por el texto fijo: *"Para calcular su cuenta, use la calculadora de estimado en esta misma página."* **Precisiones de T-19 (decisión de Yeimy, 2026-11-25):** (a) si la pregunta del cliente trae un monto (es un pedido de cálculo), la respuesta solo puede mencionar los montos fijos de `tarifas` (₡2.000, ₡15.000, ₡40.000), para que no pase el ejemplo de FAQ-03 (₡36.500) cuando el cliente pregunta justo por ese caso (EV-29); (b) los **porcentajes** también se verifican: solo se permiten los de la base. |
 | **RF-25** | Si la pregunta tiene una parte con información y otra sin ella, Gemini debe responder solo la parte conocida y marcar `aclaracion_pendiente: true`. El sistema agrega entonces el texto fijo: *"Para lo demás, escríbanos por WhatsApp al 8888-0000."* (D-10). |
 
 ### Audio
@@ -53,7 +53,7 @@ Estas decisiones las tomó la autora antes de escribir la especificación. Todo 
 | ID | Requisito |
 |---|---|
 | **RF-09** | El sistema debe convertir automáticamente cada respuesta en audio con ElevenLabs y mostrar un reproductor en la interfaz. El audio **no se reproduce automáticamente** (D-03). |
-| **RF-10** | Toda respuesta mostrada al cliente tiene **máximo 400 caracteres** (`LIMITE_CARACTERES_RESPUESTA`). Si Gemini devuelve un texto más largo, el sistema lo recorta en la última oración completa dentro del límite. El texto en pantalla y el del audio son el mismo. |
+| **RF-10** | Toda respuesta mostrada al cliente tiene **máximo 400 caracteres** (`LIMITE_CARACTERES_RESPUESTA`). Si Gemini devuelve un texto más largo, el sistema lo recorta en la última oración completa dentro del límite. *Si no termina ninguna oración dentro del límite, se corta en la última palabra completa y se agrega "…" (decisión de Yeimy en T-19). Los textos fijos de RF-25 y el prefijo [RESPUESTA SIMULADA] cuentan dentro del límite.* El texto en pantalla y el del audio son el mismo. |
 | **RF-11** | Antes de llamar a ElevenLabs, el sistema debe buscar en la caché (`cache_audio/`) un audio generado antes para el mismo texto, voz y modelo. Si existe, lo reutiliza sin gastar créditos. |
 | **RF-26** | Antes de enviar el texto a ElevenLabs, el sistema debe **prepararlo para la voz**: convertir "₡36.500" en "36500 colones", leer los números de teléfono dígito por dígito ("8 8 8 8, 0 0 0 0") y quitar símbolos que no se pronuncian (como `*` o `#`). El texto en pantalla no cambia. |
 | **RF-27** | Cada respuesta de la base de conocimiento tiene máximo 400 caracteres. La lista completa de barrios no va en el texto de FAQ-06, sino en la sección `zonas_domicilio`: así el asistente puede confirmar un barrio específico ("¿entregan en Pinares?") sin pasarse del límite. |
