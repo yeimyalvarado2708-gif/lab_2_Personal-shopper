@@ -16,8 +16,13 @@ from src.validacion import MENSAJE_MONTO_INVALIDO
 from src.errores import (
     MENSAJE_AUDIO_DEMO,
     MENSAJE_CUOTA_AUDIO,
+    MENSAJE_CUOTA_GEMINI,
+    MENSAJE_SERVICIO_NO_DISPONIBLE,
     ErrorBaseConocimiento,
     ErrorConexion,
+    ErrorConfiguracion,
+    ErrorCuota,
+    ErrorServicio,
 )
 
 TIEMPO = 30
@@ -141,24 +146,66 @@ def test_despues_de_responder_los_controles_se_vuelven_a_activar():
 
 # ---------- errores (sección 7) ----------
 
-def test_error_de_gemini_muestra_el_mensaje_amigable(monkeypatch):
+def test_error_de_gemini_muestra_el_aviso_amigable(monkeypatch):
+    """T-29: burbuja de aviso; "sin conexión" no lleva WhatsApp (no abriría)."""
     monkeypatch.setattr(asistente, "responder", lambda *a, **k: (_ for _ in ()).throw(ErrorConexion()))
     at = preguntar(abrir(), "¿Cómo pago?")
-    assert not at.exception
-    assert [e.value for e in at.error] == [str(ErrorConexion())]
+    assert not at.exception and not at.error
+    assert f'class="ps-aviso">⚠️ {ErrorConexion()}<' in html_preguntar(at)
+    assert not en_preguntar(at).get("link_button")
     assert all(not b.disabled for b in at.button)
 
 
-def test_base_danada_muestra_el_mensaje_y_la_app_no_se_cierra(monkeypatch):
+@pytest.mark.parametrize("error", [ErrorCuota(MENSAJE_CUOTA_GEMINI), ErrorServicio(MENSAJE_SERVICIO_NO_DISPONIBLE),
+                                   ErrorConfiguracion()])
+def test_errores_que_mencionan_whatsapp_llevan_el_boton(monkeypatch, error):
+    """Decisión de Yeimy (T-29)."""
+    monkeypatch.setattr(asistente, "responder", lambda *a, **k: (_ for _ in ()).throw(error))
+    at = preguntar(abrir(), "¿Cómo pago?")
+    assert str(error) in html_preguntar(at)
+    botones = en_preguntar(at).get("link_button")
+    assert [b.proto.label for b in botones] == ["Escribir por WhatsApp"]
+    assert botones[0].proto.url.startswith("https://wa.me/50688880000?text=")
+
+
+def test_cuota_agotada_sugiere_el_modo_demo_en_la_consola(monkeypatch, caplog):
+    """Sección 7: "Se sugiere activar MODO_DEMO para la demostración" (para la dueña)."""
+    monkeypatch.setattr(asistente, "responder",
+                        lambda *a, **k: (_ for _ in ()).throw(ErrorCuota(MENSAJE_CUOTA_GEMINI)))
+    with caplog.at_level("WARNING", logger="personal_shopper"):
+        preguntar(abrir(), "¿Cómo pago?")
+    assert "MODO_DEMO=true" in caplog.text
+
+
+def test_base_danada_muestra_encabezado_aviso_whatsapp_y_pie(monkeypatch):
+    """Sección 7 y decisión de Yeimy (T-29): la app no se cierra."""
     def falla():
         raise ErrorBaseConocimiento(detalle_tecnico="data/base_conocimiento.json no existe")
 
     monkeypatch.setattr(base_conocimiento, "cargar_base", falla)
     at = abrir()
-    assert not at.exception
-    assert [e.value for e in at.error] == [str(ErrorBaseConocimiento())]
-    assert "data/base" not in at.error[0].value
-    assert not at.tabs  # el chat no se muestra
+    assert not at.exception and not at.error
+    pagina = htmls(at)
+    assert "Tu Personal Shopper" in pagina and "¡Yo te lo compro!" in pagina
+    assert str(ErrorBaseConocimiento()) in pagina
+    assert "data/base" not in pagina  # el detalle técnico solo va a la consola
+    assert [b.proto.label for b in at.get("link_button")] == ["Escribir por WhatsApp"]
+    assert not at.tabs  # sin base no hay chat ni calculadora
+
+
+# ---------- T-29: modo demostración (RF-20, D-18) ----------
+
+def test_modo_demo_muestra_la_etiqueta_y_la_franja():
+    pagina = htmls(abrir())
+    assert 'class="ps-demo">DEMO<' in pagina
+    assert "Modo demostración: las respuestas son simuladas." in pagina
+
+
+def test_sin_modo_demo_no_hay_etiqueta_ni_franja(monkeypatch):
+    monkeypatch.setenv("MODO_DEMO", "false")
+    pagina = htmls(abrir())
+    assert "DEMO<" not in pagina
+    assert "las respuestas son simuladas" not in pagina
 
 
 def test_la_consola_no_registra_la_pregunta(caplog):

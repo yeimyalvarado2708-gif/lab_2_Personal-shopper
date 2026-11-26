@@ -3,7 +3,7 @@
 **Laboratorio 2 · Desafío 1 · LE Claude Code**
 **Autora:** Yeimy Alvarado
 **Fecha:** 2026-11-23
-**Versión:** 1.13 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25 · 1.6: RF-20, 5.6 y sección 7 precisados en T-23 el 2026-11-25 · 1.7: diseño de la interfaz, D-12 a D-18, 2026-11-25 · 1.8: saludo con "usted" y selectores de Streamlit 1.67, en T-25 el 2026-11-25 · 1.9: RF-09 y D-15 precisados en T-26 el 2026-11-25 · 1.10: RF-26 y 5.6.1, montos en palabras para la voz, ciclo C-04 del 2026-11-25 · 1.11: D-16 precisado en T-27 el 2026-11-25 · 1.12: excepción de D-17 para marcar la página en español, 2026-11-25 · 1.13: RF-17 precisado en T-28 el 2026-11-25)
+**Versión:** 1.14 (1.1: revisión de arquitectura del 2026-11-23 · 1.2: errores 404 y 500/503 de Gemini, agregados en T-18 el 2026-11-25 · 1.3: RF-24 y RF-10 precisados en T-19 el 2026-11-25 · 1.4: mensaje fijo de RF-24 con la fórmula tomada de `tarifas`, 2026-11-25 · 1.5: RF-26 y 5.6.1 precisados en T-22 el 2026-11-25 · 1.6: RF-20, 5.6 y sección 7 precisados en T-23 el 2026-11-25 · 1.7: diseño de la interfaz, D-12 a D-18, 2026-11-25 · 1.8: saludo con "usted" y selectores de Streamlit 1.67, en T-25 el 2026-11-25 · 1.9: RF-09 y D-15 precisados en T-26 el 2026-11-25 · 1.10: RF-26 y 5.6.1, montos en palabras para la voz, ciclo C-04 del 2026-11-25 · 1.11: D-16 precisado en T-27 el 2026-11-25 · 1.12: excepción de D-17 para marcar la página en español, 2026-11-25 · 1.13: RF-17 precisado en T-28 el 2026-11-25 · 1.14: presentación de los errores en pantalla, T-29 del 2026-11-26)
 **Documento relacionado:** `intent.md` v1.0
 
 ---
@@ -446,6 +446,8 @@ venv/
 | ElevenLabs sin conexión o con error | `ErrorConexion` / `ErrorServicio` | "El audio no está disponible en este momento." | El texto se muestra igual. |
 | Créditos de ElevenLabs agotados | `ErrorCuota` | "Se agotaron los créditos de audio de este mes. La respuesta se muestra solo en texto." | El texto se muestra igual. Los audios en caché siguen funcionando. |
 | Modo demo (`MODO_DEMO=true`) | — | "Modo demostración: el audio no está disponible." | No se llama a ElevenLabs (RF-20). *Agregado en T-23 (decisión de Yeimy).* |
+
+**Presentación en pantalla (decisiones de Yeimy en T-29, 2026-11-26):** los errores del servicio se muestran en una burbuja de aviso (fondo rosado claro, borde fucsia y ⚠️), en el lugar de la respuesta; los que mencionan WhatsApp llevan el botón "Escribir por WhatsApp" (el de "sin conexión" no, porque sin internet no abriría); si la base o la configuración fallan al abrir, se muestran el encabezado, el aviso con el botón y el pie, con el teléfono de respaldo `errores.TELEFONO_WHATSAPP` (igual al de la base, verificado por una prueba). Con la cuota agotada, la consola le sugiere a la dueña activar `MODO_DEMO=true`.
 
 **Regla general:** los mensajes al usuario están escritos para el cliente. Nunca mencionan claves, archivos, variables, rutas internas ni trazas técnicas, y cuando el cliente no puede resolver el problema, le ofrecen una salida (WhatsApp). El detalle técnico se escribe solo en la consola, para la dueña, y nunca incluye el valor de las claves.
 

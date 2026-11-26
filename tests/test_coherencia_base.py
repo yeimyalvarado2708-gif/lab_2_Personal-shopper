@@ -13,6 +13,8 @@ import re
 import pytest
 
 from src.base_conocimiento import buscar_pregunta, cargar_base
+from src.demo import telefono_whatsapp
+from src.errores import TELEFONO_WHATSAPP
 
 LIMITE_RESPUESTA = 400  # RF-27, decisión D-04
 
@@ -158,3 +160,8 @@ def test_respuesta_maximo_400_caracteres(faq):
     assert largo <= LIMITE_RESPUESTA, (
         f"{faq['id']} tiene {largo} caracteres; el máximo es {LIMITE_RESPUESTA}"
     )
+
+
+def test_el_telefono_de_respaldo_coincide_con_el_de_la_base():
+    """T-29: si la base no se puede leer se usa TELEFONO_WHATSAPP; debe ser el mismo número."""
+    assert telefono_whatsapp(BASE) == TELEFONO_WHATSAPP

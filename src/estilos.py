@@ -47,6 +47,9 @@ SALUDO = "¿Necesita información de nuestro servicio?"  # decisión de Yeimy: "
 MENSAJE_WHATSAPP = "Hola, tengo una consulta sobre el servicio de Personal Shopper."
 ETIQUETA_WHATSAPP = "Escribir por WhatsApp"
 
+# D-18 (RF-20): franja del modo demostración, debajo del encabezado.
+TEXTO_FRANJA_DEMO = "Modo demostración: las respuestas son simuladas."
+
 # RF-15: leyenda fija del estimado.
 LEYENDA_ESTIMADO = (
     "Este es un estimado. El total exacto se lo envío el jueves desde PriceSmart, "
@@ -114,6 +117,10 @@ html, body, [class*="st-"], button, input, textarea {{
 .ps-encabezado .ps-titulo {{ margin: 0; color: #fff; font-size: 26px; line-height: 1.1; }}
 .ps-encabezado .ps-lema {{ margin: 0; color: #fff; font-size: 13px; }}
 .ps-encabezado .ps-lema span {{ background: {AMARILLO}; color: {AZUL}; padding: 0 6px; border-radius: 4px; font-weight: 700; }}
+.ps-encabezado .ps-fila-titulo {{ display: flex; align-items: center; justify-content: space-between; }}
+.ps-encabezado .ps-demo {{ font-size: 11px; background: {AMARILLO}; color: {AZUL}; padding: 2px 8px;
+  border-radius: 999px; font-weight: 700; }}
+.ps-franja-demo {{ background: #FFF6CC; color: #6B5200; font-size: 12px; margin: 0 -14px; padding: 4px 16px; }}
 .ps-encabezado .ps-raya {{ height: 3px; width: 120px; background: {FUCSIA}; border-radius: 2px; margin-top: 6px; }}
 .ps-pie {{ background: {AZUL}; margin: 0 -14px; display: flex; align-items: center;
   justify-content: center; gap: 10px; padding: 8px; }}
@@ -212,6 +219,10 @@ html, body, [class*="st-"], button, input, textarea {{
 .ps-consulta .ps-consulta-audio {{ margin: 2px 0 0; font-size: 12px; color: {GRIS}; }}
 .ps-historial-nota {{ margin: 6px 0 0; font-size: 12px; color: {GRIS}; }}
 
+/* Avisos de error (T-29, sección 7) */
+.ps-aviso {{ background: #FDEEF3; border: 1.5px solid {FUCSIA}; border-radius: 16px 16px 16px 4px;
+  padding: 10px 12px; color: #7A1240; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }}
+
 .ps-pronto {{ font-size: 15px; color: {GRIS}; text-align: center; margin: 6px 0; }}
 </style>
 """
@@ -222,15 +233,30 @@ def _e(texto: object) -> str:
     return html.escape(str(texto), quote=True)
 
 
-def encabezado() -> str:
-    """Encabezado de D-13. La etiqueta "DEMO" y la franja de RF-20 se agregan en T-29 (D-18)."""
+def encabezado(modo_demo: bool = False) -> str:
+    """Encabezado de D-13. En modo demo lleva la etiqueta "DEMO" y la franja de RF-20 (D-18)."""
+    etiqueta = '<span class="ps-demo">DEMO</span>' if modo_demo else ""
+    franja = f'<div class="ps-franja-demo">🧪 {_e(TEXTO_FRANJA_DEMO)}</div>' if modo_demo else ""
     return (
         '<div class="ps-encabezado">'
-        '<p class="ps-titulo ps-script">Tu Personal Shopper</p>'
+        f'<div class="ps-fila-titulo"><p class="ps-titulo ps-script">Tu Personal Shopper</p>{etiqueta}</div>'
         '<p class="ps-lema"><span>Ahorre tiempo y dinero</span> · Guápiles y alrededores</p>'
         '<div class="ps-raya"></div>'
-        "</div>"
+        f"</div>{franja}"
     )
+
+
+def burbuja_aviso(mensaje: str) -> str:
+    """Aviso de error con la forma de una respuesta (decisión de Yeimy en T-29, sección 7)."""
+    return f'<div class="ps-aviso">⚠️ {_e(mensaje)}</div>'
+
+
+def aviso_lleva_whatsapp(mensaje: str) -> bool:
+    """Decisión de Yeimy (T-29): el botón de WhatsApp va en los errores que lo mencionan.
+
+    "Sin conexión" no lo menciona: sin internet, el enlace no abriría.
+    """
+    return "WhatsApp" in mensaje
 
 
 def _fecha_corta(iso: str) -> str:

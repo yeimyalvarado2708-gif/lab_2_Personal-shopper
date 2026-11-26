@@ -10,7 +10,8 @@ T-27: pestaña **Estimar** (RF-13 a RF-16, D-16): tarjetas de rango, monto,
 zona, primera compra y desglose con la leyenda, recalculado sin botón.
 T-28: pestaña **Historial** (RF-17, RNF-15): todas las consultas de la
 sesión, solo en memoria, de la más nueva a la más vieja.
-El banner de demo y el diseño final de los errores se agregan en T-29.
+T-29: etiqueta "DEMO" y franja del modo demostración (RF-20, D-18), y avisos
+de error con forma de burbuja (RF-18, sección 7).
 
 Decisiones de Yeimy (2026-11-25, T-25):
 - Trato de "usted" en toda la app, también en el saludo.
@@ -32,6 +33,13 @@ Decisiones de Yeimy (2026-11-25, T-27):
   casilla, al instante.
 
 Decisiones de Yeimy (2026-11-25, T-28): ver ``src/historial.py``.
+
+Decisiones de Yeimy (2026-11-26, T-29):
+- Los errores del servicio se muestran en una burbuja de aviso, en el lugar
+  de la respuesta.
+- Los errores que mencionan WhatsApp llevan el botón "Escribir por WhatsApp".
+- Si la base o la configuración fallan al abrir, se ven el encabezado, el
+  aviso con el botón y el pie (con el teléfono de respaldo de la sección 7).
 
 RF-31: mientras se procesa una pregunta, el botón Enviar, el campo y las
 preguntas rápidas quedan desactivados. El clic solo guarda la pregunta en
@@ -57,7 +65,7 @@ from src.calculadora import (
     zonas_para_formulario,
 )
 from src.config import cargar_config, registrar_faltantes
-from src.errores import ErrorAsistente, ErrorValidacion
+from src.errores import TELEFONO_WHATSAPP, ErrorAsistente, ErrorCuota, ErrorValidacion
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("personal_shopper")
@@ -108,6 +116,8 @@ def procesar(base: dict, config) -> None:
         st.session_state.aviso_pregunta = str(error)  # no se llamó a ninguna API
     except ErrorAsistente as error:
         logger.warning("No se pudo responder: %s", error.detalle_tecnico or type(error).__name__)
+        if isinstance(error, ErrorCuota):  # sección 7: sugerencia para la dueña
+            logger.warning("Sugerencia: para la demostración, active MODO_DEMO=true en .env")
         st.session_state.ultima = {"pregunta": pregunta.strip(), "resultado": None, "error": str(error)}
         guardar_en_historial(pregunta, None)  # sección 7: "sin respuesta"
     finally:
@@ -125,6 +135,18 @@ def avisar_faltantes_una_vez(_config) -> bool:
 
 # ---------- pantalla ----------
 
+def boton_whatsapp(telefono: str) -> None:
+    enlace = estilos.enlace_whatsapp(telefono, estilos.MENSAJE_WHATSAPP)
+    st.link_button(estilos.ETIQUETA_WHATSAPP, enlace, key="whatsapp", icon=":material/chat:")
+
+
+def mostrar_aviso(mensaje: str, telefono: str) -> None:
+    """Error con forma de burbuja y, si lo menciona, botón de WhatsApp (T-29)."""
+    st.html(estilos.burbuja_aviso(mensaje))
+    if estilos.aviso_lleva_whatsapp(mensaje):
+        boton_whatsapp(telefono)
+
+
 def mostrar_respuesta(r: dict, base: dict) -> None:
     """Burbuja con fuente y categoría, reproductor o aviso, y botón de WhatsApp."""
     st.html(estilos.burbuja_respuesta(r["respuesta"], r["fuentes"], r["categoria"]))
@@ -133,8 +155,7 @@ def mostrar_respuesta(r: dict, base: dict) -> None:
     elif r.get("aviso_audio"):
         st.html(estilos.aviso_audio(r["aviso_audio"]))  # RF-19, D-18
     if estilos.necesita_whatsapp(r):
-        enlace = estilos.enlace_whatsapp(demo.telefono_whatsapp(base), estilos.MENSAJE_WHATSAPP)
-        st.link_button(estilos.ETIQUETA_WHATSAPP, enlace, key="whatsapp", icon=":material/chat:")
+        boton_whatsapp(demo.telefono_whatsapp(base))
 
 
 def pestana_preguntar(base: dict, config) -> None:
@@ -144,7 +165,7 @@ def pestana_preguntar(base: dict, config) -> None:
     if ultima:
         st.html(estilos.burbuja_pregunta(ultima["pregunta"]))
         if ultima["error"]:
-            st.error(ultima["error"])  # diseño final de los errores en T-29
+            mostrar_aviso(ultima["error"], demo.telefono_whatsapp(base))
         else:
             mostrar_respuesta(ultima["resultado"], base)
     else:
@@ -210,16 +231,21 @@ def main() -> None:
     iniciar_estado()
     st.html(estilos.CSS)
     st.html(estilos.SCRIPT_IDIOMA, unsafe_allow_javascript=True)  # página en español, sin traducir
-    st.html(estilos.encabezado())
 
     try:
         config = cargar_config()
         base = cargar_base()
+        telefono = demo.telefono_whatsapp(base)
     except ErrorAsistente as error:
+        # Sección 7: la app no se cierra. Sin base no hay fechas ni calculadora:
+        # encabezado, aviso con WhatsApp (teléfono de respaldo) y pie.
         logger.error(error.detalle_tecnico or type(error).__name__)
-        st.error(str(error))  # sección 7: la app no se cierra
+        st.html(estilos.encabezado())
+        mostrar_aviso(str(error), TELEFONO_WHATSAPP)
+        st.html(estilos.pie(TELEFONO_WHATSAPP))
         return
     avisar_faltantes_una_vez(config)
+    st.html(estilos.encabezado(config.modo_demo))  # D-18: "DEMO" y franja en modo demo
 
     hoy = hoy_costa_rica()
     fechas = proxima_fecha_compra(hoy, base["calendario_compras"])
@@ -237,7 +263,7 @@ def main() -> None:
     with pestana_hist:
         pestana_historial()
 
-    st.html(estilos.pie(demo.telefono_whatsapp(base)))
+    st.html(estilos.pie(telefono))
 
 
 main()

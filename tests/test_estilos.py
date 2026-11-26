@@ -204,3 +204,30 @@ def test_la_tarjeta_de_la_app_crece_con_su_contenido():
     bloque = bloque[:bloque.index("}")]
     assert "overflow: hidden" in bloque
     assert "flex-shrink: 0" in bloque and "height: auto" in bloque
+
+
+# ---------- T-29: modo demo y avisos de error ----------
+
+def test_encabezado_en_modo_demo_con_etiqueta_y_franja():
+    html = estilos.encabezado(modo_demo=True)
+    assert '<span class="ps-demo">DEMO</span>' in html
+    assert "Modo demostración: las respuestas son simuladas." in html
+
+
+def test_encabezado_normal_sin_etiqueta_ni_franja():
+    html = estilos.encabezado()
+    assert "DEMO" not in html and "simuladas" not in html
+
+
+def test_el_aviso_de_error_se_escapa():
+    html = estilos.burbuja_aviso(ATAQUE)
+    assert "<script>" not in html and "&lt;script&gt;" in html
+
+
+@pytest.mark.parametrize("mensaje, lleva", [
+    ("Escríbanos por WhatsApp al 8888-0000.", True),
+    ("No hay conexión a internet en este momento. Intente de nuevo en unos minutos.", False),
+])
+def test_aviso_lleva_whatsapp_solo_si_lo_menciona(mensaje, lleva):
+    assert estilos.aviso_lleva_whatsapp(mensaje) is lleva
+

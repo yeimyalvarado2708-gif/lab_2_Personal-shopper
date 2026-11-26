@@ -12,17 +12,22 @@ Cada excepción lleva dos textos separados:
 ``st.error(str(e))`` nunca muestre detalles técnicos por accidente.
 """
 
+# WhatsApp de la dueña, escrito en los mensajes de la sección 7. Es el mismo de
+# ``negocio.contacto_humano`` en la base (lo vigila test_coherencia_base.py) y
+# sirve de respaldo cuando la base no se puede leer (T-29).
+TELEFONO_WHATSAPP = "8888-0000"
+
 # Mensajes fijos para el cliente (spec, sección 7).
 MENSAJE_NO_DISPONIBLE = (
     "En este momento el asistente no está disponible. "
-    "Escríbanos por WhatsApp al 8888-0000 y con gusto le ayudamos."
+    f"Escríbanos por WhatsApp al {TELEFONO_WHATSAPP} y con gusto le ayudamos."
 )
 MENSAJE_SIN_CONEXION = (
     "No hay conexión a internet en este momento. Intente de nuevo en unos minutos."
 )
 MENSAJE_CUOTA_GEMINI = (
     "El asistente alcanzó su límite de uso por ahora. "
-    "Intente más tarde o escriba por WhatsApp al 8888-0000."
+    f"Intente más tarde o escriba por WhatsApp al {TELEFONO_WHATSAPP}."
 )
 MENSAJE_RESPUESTA_INVALIDA = (
     "No se pudo generar una respuesta. Intente reformular su pregunta."
@@ -31,7 +36,7 @@ MENSAJE_RESPUESTA_INVALIDA = (
 # reformular la pregunta no ayuda; se pide esperar o escribir por WhatsApp.
 MENSAJE_SERVICIO_NO_DISPONIBLE = (
     "El asistente no pudo responder en este momento. "
-    "Intente de nuevo en unos minutos o escríbanos por WhatsApp al 8888-0000."
+    f"Intente de nuevo en unos minutos o escríbanos por WhatsApp al {TELEFONO_WHATSAPP}."
 )
 MENSAJE_SOLO_TEXTO ="Por ahora la respuesta está disponible solo en texto."
 MENSAJE_AUDIO_NO_DISPONIBLE = "El audio no está disponible en este momento."
